@@ -1,0 +1,24 @@
+{
+    "name": "dsfr-postale",
+    "version": "1.0.0",
+    "description": "Vue 3 component for address autocomplete using French government's API",
+    "main": "dist/index.js",
+    "module": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+      "build": "vite build",
+      "dev": "vite"
+    },
+    "author": "ER",
+    "license": "MIT",
+    "dependencies": {
+      "vue": "^3.0.0"
+    },
+    "devDependencies": {
+      "typescript": "^4.0.0",
+      "vite": "^3.0.0",
+      "@vitejs/plugin-vue": "^3.0.0",
+      "vue-tsc": "^0.0.24"
+    }
+  }
+  
