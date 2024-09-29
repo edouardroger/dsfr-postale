@@ -1,11 +1,11 @@
 <template>
     <div>
         <label :for="inputId" class="fr-label">{{ label }}</label>
-        <input type="text" class="fr-input" role="combobox" aria-haspopup="listbox" aria-owns="suggestions"
-            :aria-expanded="suggestions.length > 0" :id="inputId" v-model="query" @input="getAdresseSuggestions"
+        <input type="text" class="fr-input" role="combobox" 
+            :aria-expanded="suggestions.length > 0" :id="inputId" v-model="query" @input="debounceGetAdresseSuggestions"
             @keydown="handleKeyDown" aria-autocomplete="list" aria-controls="suggestions"
             :aria-activedescendant="activeDescendant" autocomplete="off" />
-        <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" class="suggestions">
+        <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées" class="fr-hidden fr-menu__list">
             <li v-for="(suggestion, index) in suggestions" :key="index" :id="'suggestion-' + index" role="option"
                 :aria-selected="index === activeIndex" @click="selectAddress(index)">
                 {{ suggestion.properties.label }}
@@ -52,7 +52,7 @@ export default defineComponent({
         inputId: {
             type: String as PropType<string>,
             required: true,
-        },
+        }
     },
     emits: ["addressSelected"],
     setup(_, { emit }) {
@@ -60,6 +60,7 @@ export default defineComponent({
         const suggestions = ref<AddressFeature[]>([]);
         const activeIndex = ref<number>(-1);
         const currentAddresses = ref<AddressFeature[]>([]);
+        const debounceTimeout = ref<number | null>(null); // Timeout pour le debounce
 
         const activeDescendant = computed<string>(() => {
             return activeIndex.value >= 0 ? `suggestion-${activeIndex.value}` : "";
@@ -71,7 +72,7 @@ export default defineComponent({
         };
 
         const getAdresseSuggestions = async () => {
-            if (!isValidQuery(query.value)) {
+            if (query.value.length < 3 || !isValidQuery(query.value)) {
                 suggestions.value = [];
                 activeIndex.value = -1;
                 return;
@@ -88,8 +89,19 @@ export default defineComponent({
                 currentAddresses.value = data.features;
                 activeIndex.value = -1;
             } catch (error) {
-                console.error("Erreur lors de la récupération des suggestions:", error);
+                console.error("Erreur lors de la récupération des suggestions :", error);
             }
+        };
+
+        // Fonction de debounce pour retarder l'appel à l'API
+        const debounceGetAdresseSuggestions = () => {
+            if (debounceTimeout.value) {
+                clearTimeout(debounceTimeout.value); // Efface le précédent timeout
+            }
+
+            debounceTimeout.value = setTimeout(() => {
+                getAdresseSuggestions();
+            }, 300); // Délai de 300 ms avant de faire l'appel à l'API
         };
 
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -133,7 +145,7 @@ export default defineComponent({
             suggestions,
             activeIndex,
             activeDescendant,
-            getAdresseSuggestions,
+            debounceGetAdresseSuggestions,
             handleKeyDown,
             selectAddress,
         };
@@ -142,27 +154,15 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.suggestions {
-    border: 1px solid var(--background-contrast-grey-active);
-    border-top: 0;
-    width: 39vw;
-    list-style-type: none;
-    padding: 0;
+#suggestions {
+    filter: drop-shadow(var(--overlap-shadow));
+    pointer-events: none;
+    position: absolute;
+    z-index: calc(var(--ground) + 1000);
 }
 
-.suggestions li {
-    padding: 10px;
-    cursor: pointer;
-    border-top: 1px solid var(--background-contrast-grey-active);
-}
-
-.suggestions {
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
-}
-
-.suggestions li[aria-selected="true"],
-.suggestions li:hover {
+#suggestions li[aria-selected="true"],
+#suggestions li:hover {
     background-color: var(--background-open-blue-france);
 }
 </style>
