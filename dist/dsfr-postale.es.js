@@ -1,5 +1,5 @@
-import { defineComponent as w, ref as d, computed as D, openBlock as c, createElementBlock as p, createElementVNode as g, toDisplayString as y, withDirectives as m, vModelText as k, Fragment as A, renderList as S, vShow as _ } from "vue";
-const I = w({
+import { defineComponent as D, ref as d, computed as _, openBlock as c, createElementBlock as g, createElementVNode as p, toDisplayString as y, withDirectives as m, vModelText as k, Fragment as S, renderList as E, vShow as I } from "vue";
+const $ = D({
   name: "DsfrPostale",
   props: {
     label: {
@@ -12,9 +12,9 @@ const I = w({
     }
   },
   emits: ["addressSelected"],
-  setup(e, { emit: n }) {
-    const l = d(""), o = d([]), s = d(-1), i = d([]), a = D(() => s.value >= 0 ? `suggestion-${s.value}` : ""), u = (t) => /\s[a-zA-Z]/.test(t), v = async () => {
-      if (!u(l.value)) {
+  setup(e, { emit: a }) {
+    const l = d(""), o = d([]), s = d(-1), i = d([]), n = d(null), u = _(() => s.value >= 0 ? `suggestion-${s.value}` : ""), v = (t) => /\s[a-zA-Z]/.test(t), b = async () => {
+      if (l.value.length < 3 || !v(l.value)) {
         o.value = [], s.value = -1;
         return;
       }
@@ -26,12 +26,16 @@ const I = w({
         )).json();
         o.value = r.features, i.value = r.features, s.value = -1;
       } catch (t) {
-        console.error("Erreur lors de la r\xE9cup\xE9ration des suggestions:", t);
+        console.error("Erreur lors de la r\xE9cup\xE9ration des suggestions :", t);
       }
-    }, h = (t) => {
+    }, h = () => {
+      n.value && clearTimeout(n.value), n.value = setTimeout(() => {
+        b();
+      }, 300);
+    }, A = (t) => {
       o.value.length !== 0 && (t.key === "ArrowDown" ? s.value = (s.value + 1) % o.value.length : t.key === "ArrowUp" ? s.value = (s.value - 1 + o.value.length) % o.value.length : t.key === "Enter" && s.value >= 0 ? f(s.value) : t.key === "Escape" && (o.value = [], s.value = -1));
     }, f = (t) => {
-      const r = i.value[t].properties, b = {
+      const r = i.value[t].properties, w = {
         label: r.label,
         housenumber: r.housenumber,
         street: r.street,
@@ -41,67 +45,66 @@ const I = w({
         lat: i.value[t].geometry.coordinates[1],
         lng: i.value[t].geometry.coordinates[0]
       };
-      l.value = r.label, o.value = [], n("addressSelected", b);
+      l.value = r.label, o.value = [], a("addressSelected", w);
     };
     return {
       query: l,
       suggestions: o,
       activeIndex: s,
-      activeDescendant: a,
-      getAdresseSuggestions: v,
-      handleKeyDown: h,
+      activeDescendant: u,
+      debounceGetAdresseSuggestions: h,
+      handleKeyDown: A,
       selectAddress: f
     };
   }
 });
-const E = (e, n) => {
+const q = (e, a) => {
   const l = e.__vccOpts || e;
-  for (const [o, s] of n)
+  for (const [o, s] of a)
     l[o] = s;
   return l;
-}, $ = ["for"], q = ["aria-expanded", "id", "aria-activedescendant"], C = {
+}, C = ["for"], K = ["aria-expanded", "id", "aria-activedescendant"], T = {
   role: "listbox",
   id: "suggestions",
-  class: "suggestions"
-}, K = ["id", "aria-selected", "onClick"];
-function P(e, n, l, o, s, i) {
-  return c(), p("div", null, [
-    g("label", {
+  "aria-label": "Adresses postales sugg\xE9r\xE9es",
+  class: "fr-hidden fr-menu__list"
+}, G = ["id", "aria-selected", "onClick"];
+function P(e, a, l, o, s, i) {
+  return c(), g("div", null, [
+    p("label", {
       for: e.inputId,
       class: "fr-label"
-    }, y(e.label), 9, $),
-    m(g("input", {
+    }, y(e.label), 9, C),
+    m(p("input", {
       type: "text",
       class: "fr-input",
       role: "combobox",
-      "aria-haspopup": "listbox",
-      "aria-owns": "suggestions",
       "aria-expanded": e.suggestions.length > 0,
       id: e.inputId,
-      "onUpdate:modelValue": n[0] || (n[0] = (a) => e.query = a),
-      onInput: n[1] || (n[1] = (...a) => e.getAdresseSuggestions && e.getAdresseSuggestions(...a)),
-      onKeydown: n[2] || (n[2] = (...a) => e.handleKeyDown && e.handleKeyDown(...a)),
+      "onUpdate:modelValue": a[0] || (a[0] = (n) => e.query = n),
+      onInput: a[1] || (a[1] = (...n) => e.debounceGetAdresseSuggestions && e.debounceGetAdresseSuggestions(...n)),
+      onKeydown: a[2] || (a[2] = (...n) => e.handleKeyDown && e.handleKeyDown(...n)),
       "aria-autocomplete": "list",
       "aria-controls": "suggestions",
       "aria-activedescendant": e.activeDescendant,
       autocomplete: "off"
-    }, null, 40, q), [
+    }, null, 40, K), [
       [k, e.query]
     ]),
-    m(g("ul", C, [
-      (c(!0), p(A, null, S(e.suggestions, (a, u) => (c(), p("li", {
+    m(p("ul", T, [
+      (c(!0), g(S, null, E(e.suggestions, (n, u) => (c(), g("li", {
         key: u,
         id: "suggestion-" + u,
         role: "option",
         "aria-selected": u === e.activeIndex,
         onClick: (v) => e.selectAddress(u)
-      }, y(a.properties.label), 9, K))), 128))
+      }, y(n.properties.label), 9, G))), 128))
     ], 512), [
-      [_, e.suggestions.length > 0]
+      [I, e.suggestions.length > 0]
     ])
   ]);
 }
-const V = /* @__PURE__ */ E(I, [["render", P], ["__scopeId", "data-v-1d8680dd"]]);
+const V = /* @__PURE__ */ q($, [["render", P], ["__scopeId", "data-v-97878216"]]);
 export {
   V as default
 };
