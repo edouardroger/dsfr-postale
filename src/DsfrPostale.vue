@@ -1,16 +1,18 @@
 <template>
     <div>
         <label :for="inputId" class="fr-label">{{ label }}</label>
-        <input type="text" class="fr-input" role="combobox" 
-            :aria-expanded="suggestions.length > 0" :id="inputId" v-model="query" @input="debounceGetAdresseSuggestions"
-            @keydown="handleKeyDown" aria-autocomplete="list" aria-controls="suggestions"
-            :aria-activedescendant="activeDescendant" autocomplete="off" />
-        <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées" class="fr-hidden fr-menu__list">
-            <li v-for="(suggestion, index) in suggestions" :key="index" :id="'suggestion-' + index" role="option"
-                :aria-selected="index === activeIndex" @click="selectAddress(index)">
-                {{ suggestion.properties.label }}
-            </li>
-        </ul>
+        <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
+            v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
+            aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off" />
+        <div class="fr-collapse fr-menu fr-menu__combobox" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
+            <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées"
+                class="fr-menu__list">
+                <li v-for="(suggestion, index) in suggestions" :key="index" :id="'suggestion-' + index" role="option"
+                    class="fr-nav__link" :aria-selected="index === activeIndex" @click="selectAddress(index)">
+                    {{ suggestion.properties.label }}
+                </li>
+            </ul>
+        </div>
     </div>
 </template>
 
@@ -154,15 +156,14 @@ export default defineComponent({
 </script>
 
 <style scoped>
-#suggestions {
-    filter: drop-shadow(var(--overlap-shadow));
-    pointer-events: none;
-    position: absolute;
-    z-index: calc(var(--ground) + 1000);
-}
-
 #suggestions li[aria-selected="true"],
 #suggestions li:hover {
     background-color: var(--background-open-blue-france);
+}
+
+@media (min-width:62em) {
+    .fr-menu__combobox {
+        position: relative;
+    }
 }
 </style>
