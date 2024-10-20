@@ -1,10 +1,10 @@
 <template>
-    <div>
+    <div class="fr-input-group fr-input-group__relative">
         <label :for="inputId" class="fr-label">{{ label }}</label>
         <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
             v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
             aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off" />
-        <div class="fr-collapse fr-menu fr-menu__combobox" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
+        <div class="fr-collapse fr-menu" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
             <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées"
                 class="fr-menu__list">
                 <li v-for="(suggestion, index) in suggestions" :key="index" :id="'suggestion-' + index" role="option"
@@ -49,7 +49,7 @@ export default defineComponent({
     props: {
         label: {
             type: String as PropType<string>,
-            required: true,
+            default: "Votre adresse postale"
         },
         inputId: {
             type: String as PropType<string>,
@@ -149,7 +149,7 @@ export default defineComponent({
             activeDescendant,
             debounceGetAdresseSuggestions,
             handleKeyDown,
-            selectAddress,
+            selectAddress
         };
     },
 });
@@ -161,9 +161,7 @@ export default defineComponent({
     background-color: var(--background-open-blue-france);
 }
 
-@media (min-width:62em) {
-    .fr-menu__combobox {
-        position: relative;
-    }
+.fr-input-group__relative {
+    position: relative
 }
 </style>
