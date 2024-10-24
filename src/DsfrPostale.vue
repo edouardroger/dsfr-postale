@@ -1,6 +1,8 @@
 <template>
     <div class="fr-input-group fr-input-group__relative">
-        <label :for="inputId" class="fr-label">{{ label }}</label>
+        <label :for="inputId" class="fr-label">{{ label }}
+            <span class="fr-hint-text" v-show="hint">{{ hint }}</span>
+        </label>
         <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
             v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
             aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off" />
@@ -53,7 +55,10 @@ export default defineComponent({
         },
         inputId: {
             type: String as PropType<string>,
-            required: true,
+            default: () => `input-${Math.random().toString(36).substr(2, 9)}`,
+        },
+        hint: {
+            type: String as PropType<string>,
         }
     },
     emits: ["addressSelected"],
@@ -101,7 +106,7 @@ export default defineComponent({
                 clearTimeout(debounceTimeout.value); // Efface le précédent timeout
             }
 
-            debounceTimeout.value = setTimeout(() => {
+            debounceTimeout.value = window.setTimeout(() => {
                 getAdresseSuggestions();
             }, 300); // Délai de 300 ms avant de faire l'appel à l'API
         };
