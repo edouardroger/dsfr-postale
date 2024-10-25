@@ -21,29 +21,31 @@
 <script lang="ts">
 import { defineComponent, ref, computed, PropType } from "vue";
 
+// Interface pour les suggestions d'adresses
 interface AddressFeature {
     properties: {
-        label: string;
-        housenumber?: string;
-        street?: string;
-        postcode: string;
-        city: string;
-        citycode?: string;
+        label: string; // Adresse complète
+        housenumber?: string; // Numéro de la voie (optionnel)
+        street?: string; // Rue (optionnelle)
+        postcode: string; // Code postal
+        city: string; // Ville
+        citycode?: string; // Code INSEE de la ville (optionnel)
     };
     geometry: {
-        coordinates: [number, number];
+        coordinates: [number, number]; // Coordonnées géographiques
     };
 }
 
+// Interface pour l'adresse sélectionnée
 interface SelectedAddress {
-    label: string;
-    housenumber?: string;
-    street?: string;
-    postcode: string;
-    city: string;
-    citycode?: string;
-    lat: number;
-    lng: number;
+    label: string; // Adresse complète
+    housenumber?: string; // Numéro de la voie (optionnel)
+    street?: string; // Rue (optionnelle)
+    postcode: string; // Code postal de la ville
+    city: string; // Ville
+    citycode?: string; // Code INSEE de la ville (optionnel)
+    lat: number; // Latitude
+    lng: number; // Longitude
 }
 
 export default defineComponent({
@@ -51,86 +53,97 @@ export default defineComponent({
     props: {
         label: {
             type: String as PropType<string>,
-            default: "Votre adresse postale"
+            default: "Votre adresse postale" // Valeur par défaut pour l'étiquette du champ
         },
         inputId: {
             type: String as PropType<string>,
-            default: () => `input-${Math.random().toString(36).substr(2, 9)}`,
+            default: () => `input-${Math.random().toString(36).substr(2, 9)}`, // ID, généré aléatoirement par défaut
         },
         hint: {
+            type: String as PropType<string>, // Aide à la saisie
+        },
+        postcode: {
             type: String as PropType<string>,
+            default: "", // Valeur par défaut pour le code postal
         }
     },
-    emits: ["addressSelected"],
-    setup(_, { emit }) {
-        const query = ref<string>("");
-        const suggestions = ref<AddressFeature[]>([]);
-        const activeIndex = ref<number>(-1);
-        const currentAddresses = ref<AddressFeature[]>([]);
+    emits: ["addressSelected"], // Événement émis lors de la sélection d'une adresse
+    setup(props, { emit }) {
+        const query = ref<string>(""); // Stocke la requête utilisateur
+        const suggestions = ref<AddressFeature[]>([]); // Stocke les suggestions d'adresses
+        const activeIndex = ref<number>(-1); // Index de la suggestion actuellement sélectionnée
+        const currentAddresses = ref<AddressFeature[]>([]); // Stocke les adresses actuellement disponibles
         const debounceTimeout = ref<number | null>(null); // Timeout pour le debounce
 
+        // Calcule l'ID de la suggestion active pour l'accessibilité
         const activeDescendant = computed<string>(() => {
             return activeIndex.value >= 0 ? `suggestion-${activeIndex.value}` : "";
         });
 
+        // Vérifie si la requête est valide
         const isValidQuery = (query: string): boolean => {
             const regex = /\s[a-zA-Z]/;
             return regex.test(query);
         };
 
+        // Récupère les suggestions d'adresses depuis l'API
         const getAdresseSuggestions = async () => {
+            // Vérifie si la requête est suffisamment longue et valide
             if (query.value.length < 3 || !isValidQuery(query.value)) {
-                suggestions.value = [];
-                activeIndex.value = -1;
+                suggestions.value = []; // Réinitialise les suggestions
+                activeIndex.value = -1; // Réinitialise l'index actif
                 return;
             }
 
             try {
-                const response = await fetch(
-                    `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(
-                        query.value
-                    )}`
-                );
-                const data = await response.json();
-                suggestions.value = data.features;
-                currentAddresses.value = data.features;
-                activeIndex.value = -1;
+                // Construire l'URL avec la requête et le code postal (si fourni)
+                const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query.value)}` +
+                    (props.postcode ? `&postcode=${encodeURIComponent(props.postcode)}` : "");
+                const response = await fetch(url); // Appelle l'API
+                const data = await response.json(); // Convertit la réponse en JSON
+                suggestions.value = data.features; // Stocke les suggestions
+                currentAddresses.value = data.features; // Stocke les adresses actuelles
+                activeIndex.value = -1; // Réinitialise l'index actif
             } catch (error) {
-                console.error("Erreur lors de la récupération des suggestions :", error);
+                console.error("Erreur lors de la récupération des suggestions :", error); // "Gère" les erreurs. À revoir ultérieurement.
             }
         };
 
-        // Fonction de debounce pour retarder l'appel à l'API
+        // Fonction pour retarder l'appel à l'API
         const debounceGetAdresseSuggestions = () => {
             if (debounceTimeout.value) {
                 clearTimeout(debounceTimeout.value); // Efface le précédent timeout
             }
 
+            // Met en place un nouveau timeout
             debounceTimeout.value = window.setTimeout(() => {
-                getAdresseSuggestions();
-            }, 300); // Délai de 300 ms avant de faire l'appel à l'API
+                getAdresseSuggestions(); // Appelle la fonction de suggestions après un délai
+            }, 300); // Délai de 300 ms
         };
 
+        // Gère les événements de touches pour la navigation dans les suggestions
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (suggestions.value.length === 0) return;
+            if (suggestions.value.length === 0) return; // Si aucune suggestion…
 
             if (event.key === "ArrowDown") {
-                activeIndex.value =
-                    (activeIndex.value + 1) % suggestions.value.length;
+                // Sélectionne la suggestion suivante
+                activeIndex.value = (activeIndex.value + 1) % suggestions.value.length;
             } else if (event.key === "ArrowUp") {
-                activeIndex.value =
-                    (activeIndex.value - 1 + suggestions.value.length) %
-                    suggestions.value.length;
+                // Sélectionne la suggestion précédente
+                activeIndex.value = (activeIndex.value - 1 + suggestions.value.length) % suggestions.value.length;
             } else if (event.key === "Enter" && activeIndex.value >= 0) {
+                // Sélectionne l'adresse active par la touche Entrer
                 selectAddress(activeIndex.value);
             } else if (event.key === "Escape") {
+                // Réinitialise les suggestions si la touche Échap est employée
                 suggestions.value = [];
                 activeIndex.value = -1;
             }
         };
 
+        // Sélectionne l'adresse en fonction de l'index
         const selectAddress = (index: number) => {
-            const selected = currentAddresses.value[index].properties;
+            const selected = currentAddresses.value[index].properties; // Récupère les propriétés de l'adresse sélectionnée
             const selectedAddress: SelectedAddress = {
                 label: selected.label,
                 housenumber: selected.housenumber,
@@ -138,13 +151,13 @@ export default defineComponent({
                 postcode: selected.postcode,
                 city: selected.city,
                 citycode: selected.citycode,
-                lat: currentAddresses.value[index].geometry.coordinates[1],
-                lng: currentAddresses.value[index].geometry.coordinates[0],
+                lat: currentAddresses.value[index].geometry.coordinates[1], // Latitude
+                lng: currentAddresses.value[index].geometry.coordinates[0], // Longitude
             };
-            query.value = selected.label;
-            suggestions.value = [];
+            query.value = selected.label; // Met à jour la requête avec l'adresse sélectionnée
+            suggestions.value = []; // Vide les suggestions
 
-            emit("addressSelected", selectedAddress);
+            emit("addressSelected", selectedAddress); // Émet l'adresse sélectionnée
         };
 
         return {
@@ -167,6 +180,10 @@ export default defineComponent({
 }
 
 .fr-input-group__relative {
-    position: relative
+    position: relative;
+}
+
+.fr-menu {
+    filter: drop-shadow(var(--overlap-shadow))
 }
 </style>
