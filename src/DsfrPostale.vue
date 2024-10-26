@@ -1,10 +1,10 @@
 <template>
-    <div class="fr-input-group fr-input-group__relative">
+    <div class="fr-input-group fr-input-group__relative" ref="inputGroupRef">
         <label :for="inputId" class="fr-label">{{ label }}
             <span class="fr-hint-text" v-show="hint">{{ hint }}</span>
         </label>
         <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
-            v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
+            v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" @blur="hideSuggestions" aria-autocomplete="list"
             aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off" />
         <div class="fr-collapse fr-menu" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
             <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées"
@@ -19,7 +19,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, PropType } from "vue";
+import { defineComponent, ref, computed, PropType, onMounted, onBeforeUnmount } from "vue";
 
 // Interface pour les suggestions d'adresses
 interface AddressFeature {
@@ -74,6 +74,7 @@ export default defineComponent({
         const activeIndex = ref<number>(-1); // Index de la suggestion actuellement sélectionnée
         const currentAddresses = ref<AddressFeature[]>([]); // Stocke les adresses actuellement disponibles
         const debounceTimeout = ref<number | null>(null); // Timeout pour le debounce
+        const inputGroupRef = ref<HTMLElement | null>(null); // Référence au conteneur
 
         // Calcule l'ID de la suggestion active pour l'accessibilité
         const activeDescendant = computed<string>(() => {
@@ -90,8 +91,7 @@ export default defineComponent({
         const getAdresseSuggestions = async () => {
             // Vérifie si la requête est suffisamment longue et valide
             if (query.value.length < 3 || !isValidQuery(query.value)) {
-                suggestions.value = []; // Réinitialise les suggestions
-                activeIndex.value = -1; // Réinitialise l'index actif
+                hideSuggestions();
                 return;
             }
 
@@ -136,8 +136,7 @@ export default defineComponent({
                 selectAddress(activeIndex.value);
             } else if (event.key === "Escape") {
                 // Réinitialise les suggestions si la touche Échap est employée
-                suggestions.value = [];
-                activeIndex.value = -1;
+                hideSuggestions();
             }
         };
 
@@ -160,6 +159,30 @@ export default defineComponent({
             emit("addressSelected", selectedAddress); // Émet l'adresse sélectionnée
         };
 
+        // Fonction pour masquer les suggestions
+        const hideSuggestions = () => {
+            suggestions.value = []; // Masquer les suggestions
+            activeIndex.value = -1; // Réinitialiser l'index actif
+        };
+
+        // Fonction pour masquer les suggestions lorsque l'utilisateur clique en dehors
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (inputGroupRef.value && !inputGroupRef.value.contains(target)) {
+                hideSuggestions();
+            }
+        };
+
+        // Ajoute un écouteur d'événements lors du montage du composant
+        onMounted(() => {
+            document.addEventListener("click", handleClickOutside);
+        });
+
+        // Supprime l'écouteur d'événements lors de son démontage
+        onBeforeUnmount(() => {
+            document.removeEventListener("click", handleClickOutside);
+        });
+
         return {
             query,
             suggestions,
@@ -167,7 +190,9 @@ export default defineComponent({
             activeDescendant,
             debounceGetAdresseSuggestions,
             handleKeyDown,
-            selectAddress
+            selectAddress,
+            hideSuggestions, 
+            inputGroupRef
         };
     },
 });
@@ -184,6 +209,6 @@ export default defineComponent({
 }
 
 .fr-menu {
-    filter: drop-shadow(var(--overlap-shadow))
+    filter: drop-shadow(var(--overlap-shadow));
 }
 </style>
