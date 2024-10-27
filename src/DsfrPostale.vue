@@ -4,7 +4,7 @@
             <span class="fr-hint-text" v-show="hint">{{ hint }}</span>
         </label>
         <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
-            v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" @blur="hideSuggestions" aria-autocomplete="list"
+            v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
             aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off" />
         <div class="fr-collapse fr-menu" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
             <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées"
@@ -191,7 +191,7 @@ export default defineComponent({
             debounceGetAdresseSuggestions,
             handleKeyDown,
             selectAddress,
-            hideSuggestions, 
+            hideSuggestions,
             inputGroupRef
         };
     },
@@ -210,5 +210,32 @@ export default defineComponent({
 
 .fr-menu {
     filter: drop-shadow(var(--overlap-shadow));
+    position: absolute;
+    top: 100%;
+    z-index: calc(var(--ground) + 1000);
+}
+
+.fr-menu__list {
+    --idle: transparent;
+    --hover: var(--background-overlap-grey-hover);
+    --active: var(--background-overlap-grey-active);
+    background-color: var(--background-overlap-grey);
+    background-image: linear-gradient(0deg, var(--background-open-blue-france), var(--background-open-blue-france));
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    margin-bottom: 2rem;
+    padding: 0;
+    pointer-events: auto;
+    width: 20rem
+}
+
+.fr-menu .fr-nav__link {
+    box-shadow: 0 calc(-1rem - 1px) 0 -1rem var(--border-default-grey);
+    padding: .75rem 1rem;
+}
+
+.fr-menu .fr-nav__link:before {
+    left: 0
 }
 </style>
