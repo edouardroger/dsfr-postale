@@ -134,8 +134,8 @@ export default defineComponent({
             } else if (event.key === "Enter" && activeIndex.value >= 0) {
                 // Sélectionne l'adresse active par la touche Entrer
                 selectAddress(activeIndex.value);
-            } else if (event.key === "Escape") {
-                // Réinitialise les suggestions si la touche Échap est employée
+            } else if (event.key === "Escape" || event.key === "Tab") {
+                // Réinitialise les suggestions si la touche Échap (ou Tab) est employée
                 hideSuggestions();
             }
         };
