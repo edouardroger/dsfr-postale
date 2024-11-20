@@ -1,24 +1,27 @@
 {
-    "name": "dsfr-postale",
-    "version": "1.0.0",
-    "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Base adresse nationale »",
-    "main": "dist/index.js",
-    "module": "dist/index.esm.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-      "build": "vite build",
-      "dev": "vite"
-    },
-    "author": "ER",
-    "license": "MIT",
-    "dependencies": {
-      "vue": "^3.0.0"
-    },
-    "devDependencies": {
-      "typescript": "^4.0.0",
-      "vite": "^3.0.0",
-      "@vitejs/plugin-vue": "^3.0.0",
-      "vue-tsc": "^0.0.24"
-    }
+  "name": "dsfr-postale",
+  "version": "1.0.1",
+  "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Base adresse nationale »",
+  "main": "dist/dsfr-postale.umd.js",
+  "module": "dist/dsfr-postale.es.js",
+  ".": {
+    "import": "dist/dsfr-postale.es.js",
+    "require": "dist/dsfr-postale.umd.js"
+  },
+  "style": "dist/style.css",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "author": "ER",
+  "license": "MIT",
+  "dependencies": {
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "vite": "^3.0.0",
+    "@vitejs/plugin-vue": "^3.0.0",
+    "vue-tsc": "^0.0.24"
   }
-  
+}

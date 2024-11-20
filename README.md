@@ -12,7 +12,7 @@ Destiné à s'intégrer au sein de l'écosystème du [système de design de l'Et
 
 ### Installation
 
-À rédiger lorsque le paquet sera publié.
+    npm i dsfr-postale
 
 ### Paramètres
 
@@ -20,3 +20,7 @@ Destiné à s'intégrer au sein de l'écosystème du [système de design de l'Et
 - `hint` (optionnel) : aide à la saisie
 - `postcode` (optionnel) : restriction de l'auto-complétion à une ville donnée, en fonction de son code postal
 - `inputId` (optionnel) : ID du champ (généré automatiquement par défaut)
+
+### Démonstration
+
+[Accéder à la démonstration](https://playcode.io/2052723)
