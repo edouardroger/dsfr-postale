@@ -20,6 +20,7 @@ Destiné à s'intégrer au sein de l'écosystème du [système de design de l'Et
 - `hint` (optionnel) : aide à la saisie
 - `postcode` (optionnel) : restriction de l'auto-complétion à une ville donnée, en fonction de son code postal
 - `inputId` (optionnel) : ID du champ (généré automatiquement par défaut)
+- `errorMessage` (optionnel) : message d'erreur à afficher
 
 ### Démonstration
 
