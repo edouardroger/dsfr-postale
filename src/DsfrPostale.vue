@@ -5,7 +5,9 @@
         </label>
         <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
             v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
-            aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off" />
+            aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off"
+            :aria-describedby="errorMessageId" />
+        <p v-if="errorMessage" class="fr-error-text" :id="errorMessageId" role="alert">{{ errorMessage }}</p>
         <div class="fr-collapse fr-menu" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
             <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées"
                 class="fr-menu__list">
@@ -18,8 +20,9 @@
     </div>
 </template>
 
+
 <script lang="ts">
-import { defineComponent, ref, computed, PropType, onMounted, onBeforeUnmount } from "vue";
+import { defineComponent, ref, computed, PropType, onMounted, onBeforeUnmount, watch } from "vue";
 
 // Interface pour les suggestions d'adresses
 interface AddressFeature {
@@ -28,7 +31,7 @@ interface AddressFeature {
         housenumber?: string; // Numéro de la voie (optionnel)
         street?: string; // Rue (optionnelle)
         postcode: string; // Code postal
-        city: string; // Ville
+        city: string; // Ville£
         citycode?: string; // Code INSEE de la ville (optionnel)
     };
     geometry: {
@@ -65,6 +68,10 @@ export default defineComponent({
         postcode: {
             type: String as PropType<string>,
             default: "", // Valeur par défaut pour le code postal
+        },
+        errorMessage: {
+            type: String as PropType<string>,
+            default: ""
         }
     },
     emits: ["addressSelected"], // Événement émis lors de la sélection d'une adresse
@@ -75,11 +82,19 @@ export default defineComponent({
         const currentAddresses = ref<AddressFeature[]>([]); // Stocke les adresses actuellement disponibles
         const debounceTimeout = ref<number | null>(null); // Timeout pour le debounce
         const inputGroupRef = ref<HTMLElement | null>(null); // Référence au conteneur
+        const errorMessage = ref<string>(props.errorMessage); //  Message d'erreur
 
         // Calcule l'ID de la suggestion active pour l'accessibilité
         const activeDescendant = computed<string>(() => {
             return activeIndex.value >= 0 ? `suggestion-${activeIndex.value}` : "";
         });
+
+        watch(() => props.errorMessage, (newError) => {
+            errorMessage.value = newError; // Si la prop errorMessage change, on met à jour sa valeur locale
+        });
+
+        // L'ID du message d'erreur
+        const errorMessageId = computed(() => `error-message-${props.inputId}`);
 
         // Vérifie si la requête est valide
         const isValidQuery = (query: string): boolean => {
@@ -100,12 +115,17 @@ export default defineComponent({
                 const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query.value)}` +
                     (props.postcode ? `&postcode=${encodeURIComponent(props.postcode)}` : "");
                 const response = await fetch(url); // Appelle l'API
+                if (!response.ok) {
+                    throw new Error("Erreur de récupération des suggestions.");
+                }
                 const data = await response.json(); // Convertit la réponse en JSON
                 suggestions.value = data.features; // Stocke les suggestions
                 currentAddresses.value = data.features; // Stocke les adresses actuelles
                 activeIndex.value = -1; // Réinitialise l'index actif
+                errorMessage.value = ""; // Supprime le message d'erreur
             } catch (error) {
-                console.error("Erreur lors de la récupération des suggestions :", error); // "Gère" les erreurs. À revoir ultérieurement.
+                errorMessage.value = "Erreur lors de l'obtention des adresses. Veuillez réessayer."; // Affiche un message d'erreur
+                console.error("Erreur lors de l'obtention des adresses :", error);
             }
         };
 
@@ -192,7 +212,9 @@ export default defineComponent({
             handleKeyDown,
             selectAddress,
             hideSuggestions,
-            inputGroupRef
+            inputGroupRef,
+            errorMessage,
+            errorMessageId
         };
     },
 });
@@ -202,6 +224,7 @@ export default defineComponent({
 #suggestions li[aria-selected="true"],
 #suggestions li:hover {
     background-color: var(--background-open-blue-france);
+    outline: 2px solid var(--border-action-high-blue-france);
 }
 
 .fr-input-group__relative {
@@ -237,5 +260,9 @@ export default defineComponent({
 
 .fr-menu .fr-nav__link:before {
     left: 0
+}
+
+.fr-nav__link:focus {
+    outline: 2px solid var(--border-action-high-blue-france);
 }
 </style>
