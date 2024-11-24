@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "path";
+import { configDefaults } from 'vitest/config';
 
 export default defineConfig({
   plugins: [vue()],
@@ -18,5 +19,11 @@ export default defineConfig({
         }
       }
     }
-  }
+  },
+  test: {
+    globals: true, // Permet d'utiliser `describe`, `test` sans import
+    environment: "jsdom", // Simule un environnement DOM
+    setupFiles: "./vitest.setup.ts", // Fichier d'initialisation
+    exclude: [...configDefaults.exclude, "node_modules/**"], // Exclut les fichiers non pertinents
+  },
 });
