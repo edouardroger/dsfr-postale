@@ -12,7 +12,9 @@ Il est destiné à s'intégrer au sein de l'écosystème du [système de design 
 
 ### Installation
 
+```bash
 npm i dsfr-postale
+```
 
 Remarque : veillez à aussi importer la feuille de style, qui apporte quelques modifications nécessaires.
 
@@ -23,6 +25,7 @@ Remarque : veillez à aussi importer la feuille de style, qui apporte quelques m
 - `postcode` (optionnel) : restriction de l'auto-complétion à une ville donnée, en fonction de son code postal
 - `inputId` (optionnel) : ID du champ (généré automatiquement par défaut)
 - `errorMessage` (optionnel) : message d'erreur à afficher
+- `required` (optionnel) : caractère obligatoire de la saisie (par défaut, non)
 
 ### Démonstration
 
