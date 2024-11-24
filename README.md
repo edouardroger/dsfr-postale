@@ -2,9 +2,9 @@
 
 ## À propos
 
-Interrogation de l'API « Base adresse nationale » pour auto-compléter un champ et restituer l’adresse postale choisie.
+Ce composant interroge l'API « Base adresse nationale » pour auto-compléter un champ et restituer l’adresse postale choisie.
 
-Destiné à s'intégrer au sein de l'écosystème du [système de design de l'Etat (DSFR)](https://www.systeme-de-design.gouv.fr).
+Il est destiné à s'intégrer au sein de l'écosystème du [système de design de l'État (DSFR)](https://www.systeme-de-design.gouv.fr).
 
 <img width="390" alt="" src="https://github.com/user-attachments/assets/a9159c00-d957-4e7c-a5f5-2b6ffe8ba917" />
 
@@ -12,7 +12,9 @@ Destiné à s'intégrer au sein de l'écosystème du [système de design de l'Et
 
 ### Installation
 
-    npm i dsfr-postale
+npm i dsfr-postale
+
+Remarque : veillez à aussi importer la feuille de style, qui apporte quelques modifications nécessaires.
 
 ### Paramètres
 
@@ -25,3 +27,7 @@ Destiné à s'intégrer au sein de l'écosystème du [système de design de l'Et
 ### Démonstration
 
 [Accéder à la démonstration](https://playcode.io/2052723)
+
+## Accessibilité
+
+Le composant met en œuvre le motif de conception ARIA « combobox » et devrait être accessible.
