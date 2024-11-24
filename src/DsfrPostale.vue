@@ -8,9 +8,8 @@
             aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off"
             :aria-describedby="errorMessageId" />
         <p v-if="errorMessage" class="fr-error-text" :id="errorMessageId" role="alert">{{ errorMessage }}</p>
-        <div class="fr-collapse fr-menu" :class="{ 'fr-collapse--expanded': suggestions.length > 0 }">
-            <ul role="listbox" v-show="suggestions.length > 0" id="suggestions" aria-label="Adresses postales suggérées"
-                class="fr-menu__list">
+        <div class="fr-menu" v-show="suggestions.length > 0">
+            <ul class="fr-menu__list" role="listbox" id="suggestions" aria-label="Adresses postales suggérées">
                 <li v-for="(suggestion, index) in suggestions" :key="index" :id="'suggestion-' + index" role="option"
                     class="fr-nav__link" :aria-selected="index === activeIndex" @click="selectAddress(index)">
                     {{ suggestion.properties.label }}
@@ -227,42 +226,22 @@ export default defineComponent({
     outline: 2px solid var(--border-action-high-blue-france);
 }
 
+@media all {
+    .fr-menu {
+        filter: drop-shadow(var(--overlap-shadow));
+    }
+
+    .fr-menu__list {
+        background-color: #fff;
+        box-shadow: 0 0 0 1px rgba(0, 0, 18, .16);
+    }
+
+    .fr-menu .fr-nav__link {
+        box-shadow: 0 calc(-1rem - 1px) 0 -1rem #ddd
+    }
+}
+
 .fr-input-group__relative {
     position: relative;
-}
-
-.fr-menu {
-    filter: drop-shadow(var(--overlap-shadow));
-    position: absolute;
-    top: 100%;
-    z-index: calc(var(--ground) + 1000);
-}
-
-.fr-menu__list {
-    --idle: transparent;
-    --hover: var(--background-overlap-grey-hover);
-    --active: var(--background-overlap-grey-active);
-    background-color: var(--background-overlap-grey);
-    background-image: linear-gradient(0deg, var(--background-open-blue-france), var(--background-open-blue-france));
-    background-position: 0 0;
-    background-repeat: no-repeat;
-    background-size: 100% 1px;
-    margin-bottom: 2rem;
-    padding: 0;
-    pointer-events: auto;
-    width: 20rem
-}
-
-.fr-menu .fr-nav__link {
-    box-shadow: 0 calc(-1rem - 1px) 0 -1rem var(--border-default-grey);
-    padding: .75rem 1rem;
-}
-
-.fr-menu .fr-nav__link:before {
-    left: 0
-}
-
-.fr-nav__link:focus {
-    outline: 2px solid var(--border-action-high-blue-france);
 }
 </style>
