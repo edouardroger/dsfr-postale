@@ -19,7 +19,7 @@ describe("DsfrPostale", () => {
     // Simuler la saisie de texte dans le champ de saisie
     await input.setValue("10 Rue de Poitiers");
 
-    // Mettre à jour les suggestions après la saisie (en simulant la réponse de l'API)
+    // Mettre à jour les suggestions après la saisie
     await wrapper.setData({
       suggestions: [
         { housenumber: "10", street: "Rue de Poitiers", citycode: "49400" },
@@ -48,7 +48,7 @@ describe("DsfrPostale", () => {
     const firstSuggestion = listItems.at(0);
 
     // Vérifier si firstSuggestion existe avant de l'utiliser
-    expect(firstSuggestion).toBeDefined(); // Assurez-vous que la suggestion existe
+    expect(firstSuggestion).toBeDefined();
 
     if (firstSuggestion) {
       expect(firstSuggestion.text()).toContain("10 Rue de Poitiers 49400 Saumur");
@@ -65,11 +65,9 @@ describe("DsfrPostale", () => {
 
       // Vérifier le contenu de l'événement
       if (emittedEvents && emittedEvents.length > 0) {
-        console.log(emittedEvents[0][0]); // Afficher l'événement pour débogage
-
         expect(emittedEvents[0][0]).toEqual({
           city: "Saumur",
-          citycode: "49328", // Assurez-vous que c'est le bon code INSEE
+          citycode: "49328",
           housenumber: "10",
           label: "10 Rue de Poitiers 49400 Saumur",
           lat: 47.253416,
