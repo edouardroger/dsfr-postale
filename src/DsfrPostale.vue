@@ -6,7 +6,7 @@
         <input type="text" class="fr-input" role="combobox" :aria-expanded="suggestions.length > 0" :id="inputId"
             v-model="query" @input="debounceGetAdresseSuggestions" @keydown="handleKeyDown" aria-autocomplete="list"
             aria-controls="suggestions" :aria-activedescendant="activeDescendant" autocomplete="off"
-            :aria-describedby="errorMessageId" />
+            :aria-describedby="errorMessageId" :required="required" />
         <p v-if="errorMessage" class="fr-error-text" :id="errorMessageId" role="alert">{{ errorMessage }}</p>
         <div class="fr-menu" v-show="suggestions.length > 0">
             <ul class="fr-menu__list" role="listbox" id="suggestions" aria-label="Adresses postales suggérées">
@@ -71,6 +71,10 @@ export default defineComponent({
         errorMessage: {
             type: String as PropType<string>,
             default: ""
+        },
+        required: {
+            type: Boolean,
+            default: false
         }
     },
     emits: ["addressSelected"], // Événement émis lors de la sélection d'une adresse
