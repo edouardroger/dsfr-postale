@@ -9,7 +9,7 @@
             :aria-describedby="errorMessageId" :required="required" />
         <p v-if="errorMessage" class="fr-error-text" :id="errorMessageId" role="alert">{{ errorMessage }}</p>
         <div class="fr-menu" v-show="suggestions.length > 0">
-            <ul class="fr-menu__list" role="listbox" id="suggestions" aria-label="Adresses postales suggérées">
+            <ul class="fr-menu__list" role="listbox" :id="suggestionsId" aria-label="Adresses postales suggérées">
                 <li v-for="(suggestion, index) in suggestions" :key="index" :id="'suggestion-' + index" role="option"
                     class="fr-nav__link" :aria-selected="index === activeIndex" @click="selectAddress(index)">
                     {{ suggestion.properties.label }}
@@ -98,6 +98,9 @@ export default defineComponent({
 
         // L'ID du message d'erreur
         const errorMessageId = computed(() => `error-message-${props.inputId}`);
+
+        // Celui des suggestions
+        const suggestionsId = computed(() => `suggestions-${props.inputId}`);
 
         // Vérifie si la requête est valide
         const isValidQuery = (query: string): boolean => {
@@ -224,8 +227,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
-#suggestions li[aria-selected="true"],
-#suggestions li:hover {
+.fr-menu__list li[aria-selected="true"],
+.fr-menu__list li:hover {
     background-color: var(--background-open-blue-france);
     outline: 2px solid var(--border-action-high-blue-france);
 }
