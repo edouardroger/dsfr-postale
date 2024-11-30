@@ -220,7 +220,8 @@ export default defineComponent({
             hideSuggestions,
             inputGroupRef,
             errorMessage,
-            errorMessageId
+            errorMessageId,
+            suggestionsId
         };
     },
 });

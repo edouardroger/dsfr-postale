@@ -4,6 +4,7 @@
   "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Base adresse nationale »",
   "main": "dist/dsfr-postale.umd.js",
   "module": "dist/dsfr-postale.es.js",
+  "types": "dist/types/index.d.ts",
   ".": {
     "import": "dist/dsfr-postale.es.js",
     "require": "dist/dsfr-postale.umd.js"
@@ -28,6 +29,7 @@
     "jsdom": "^25.0.1",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",
+    "vite-plugin-dts": "^4.3.0",
     "vitest": "^2.1.5",
     "vue-test-utils": "^0.5.0",
     "vue-tsc": "^2.1.10"
