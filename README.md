@@ -29,7 +29,7 @@ Remarque : veillez à aussi importer la feuille de style, qui apporte quelques m
 
 ### Démonstration
 
-[Accéder à la démonstration](https://playcode.io/2052723)
+[Accéder à la démonstration](https://edouardroger.github.io/dsfr-postale-demo/)
 
 ## Accessibilité
 
