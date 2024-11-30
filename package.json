@@ -1,6 +1,6 @@
 {
   "name": "dsfr-postale",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Base adresse nationale »",
   "main": "dist/dsfr-postale.umd.js",
   "module": "dist/dsfr-postale.es.js",
