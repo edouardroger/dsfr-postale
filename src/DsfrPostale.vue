@@ -1,5 +1,5 @@
 <template>
-    <div class="fr-input-group fr-input-group__relative" ref="inputGroupRef">
+    <div class="fr-input-group" ref="inputGroupRef">
         <label :for="inputId" class="fr-label">{{ label }}
             <span class="fr-hint-text" v-show="hint">{{ hint }}</span>
         </label>
@@ -247,9 +247,5 @@ export default defineComponent({
     .fr-menu .fr-nav__link {
         box-shadow: 0 calc(-1rem - 1px) 0 -1rem #ddd
     }
-}
-
-.fr-input-group__relative {
-    position: relative;
 }
 </style>
