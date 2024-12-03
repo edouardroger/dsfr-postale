@@ -149,8 +149,14 @@ export default defineComponent({
 
         // Gère les événements de touches pour la navigation dans les suggestions
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (suggestions.value.length === 0) return; // Si aucune suggestion…
-
+            // Si aucune suggestion n'est affichée
+            if (suggestions.value.length === 0) {
+                if (event.key === "Escape") {
+                    // Si aucune suggestion, on vide le champ de saisie
+                    query.value = "";
+                }
+                return; // Si aucune suggestion, on ne va pas plus loin
+            }
             if (event.key === "ArrowDown") {
                 // Sélectionne la suggestion suivante
                 activeIndex.value = (activeIndex.value + 1) % suggestions.value.length;
@@ -160,8 +166,11 @@ export default defineComponent({
             } else if (event.key === "Enter" && activeIndex.value >= 0) {
                 // Sélectionne l'adresse active par la touche Entrer
                 selectAddress(activeIndex.value);
-            } else if (event.key === "Escape" || event.key === "Tab") {
-                // Réinitialise les suggestions si la touche Échap (ou Tab) est employée
+            } else if (event.key === "Escape") {
+                // Masque les suggestions si la touche Échap est utilisée
+                hideSuggestions();
+            } else if (event.key === "Tab") {
+                // Masque les suggestions si la touche Tab est employée
                 hideSuggestions();
             }
         };
