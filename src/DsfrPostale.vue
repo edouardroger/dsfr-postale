@@ -117,20 +117,37 @@ export default defineComponent({
             }
 
             try {
-                // Construire l'URL avec la requête et le code postal (si fourni)
-                const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query.value)}` +
-                    (props.postcode ? `&postcode=${encodeURIComponent(props.postcode)}` : "");
-                const response = await fetch(url); // Appelle l'API
+                // Nouvelle URL GeoPlateforme
+                const url = `https://data.geopf.fr/geocodage/search/?q=${encodeURIComponent(query.value)}&limit=5`
+                    + (props.postcode ? `&postcode=${encodeURIComponent(props.postcode)}` : "");
+                const response = await fetch(url, {
+                    headers: { 'accept': 'application/json' }
+                });
                 if (!response.ok) {
                     throw new Error("Erreur de récupération des suggestions.");
                 }
-                const data = await response.json(); // Convertit la réponse en JSON
-                suggestions.value = data.features; // Stocke les suggestions
-                currentAddresses.value = data.features; // Stocke les adresses actuelles
-                activeIndex.value = -1; // Réinitialise l'index actif
-                errorMessage.value = ""; // Supprime le message d'erreur
+                const data = await response.json();
+
+                const features = (data.features || []).map((feature: any) => ({
+                    properties: {
+                        label: feature.properties.label,
+                        housenumber: feature.properties.housenumber,
+                        street: feature.properties.street,
+                        postcode: feature.properties.postcode,
+                        city: feature.properties.city,
+                        citycode: feature.properties.citycode
+                    },
+                    geometry: {
+                        coordinates: feature.geometry.coordinates
+                    }
+                }));
+
+                suggestions.value = features;
+                currentAddresses.value = features;
+                activeIndex.value = -1;
+                errorMessage.value = "";
             } catch (error) {
-                errorMessage.value = "Erreur lors de l'obtention des adresses. Veuillez réessayer."; // Affiche un message d'erreur
+                errorMessage.value = "Erreur lors de l'obtention des adresses. Veuillez réessayer.";
                 console.error("Erreur lors de l'obtention des adresses :", error);
             }
         };

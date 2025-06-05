@@ -1,7 +1,7 @@
 {
   "name": "dsfr-postale",
-  "version": "1.0.8",
-  "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Base adresse nationale »",
+  "version": "1.1.0",
+  "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Géocodage » de l'IGN",
   "main": "dist/dsfr-postale.umd.js",
   "module": "dist/dsfr-postale.es.js",
   "types": "dist/types/index.d.ts",
@@ -26,12 +26,11 @@
     "@types/node": "^22.9.3",
     "@vitejs/plugin-vue": "^5.2.0",
     "@vue/test-utils": "^2.4.6",
-    "jsdom": "^25.0.1",
+    "jsdom": "^26.1.0",
     "typescript": "^5.7.2",
-    "vite": "^5.4.11",
-    "vite-plugin-dts": "^4.3.0",
-    "vitest": "^2.1.5",
-    "vue-test-utils": "^0.5.0",
-    "vue-tsc": "^2.1.10"
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^3.1.3",
+    "vue-tsc": "^2.2.10"
   }
 }
