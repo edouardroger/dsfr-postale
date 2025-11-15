@@ -1,6 +1,6 @@
 {
   "name": "dsfr-postale",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Géocodage » de l'IGN",
   "main": "dist/dsfr-postale.umd.js",
   "module": "dist/dsfr-postale.es.js",
