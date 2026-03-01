@@ -2,7 +2,7 @@
 
 ## À propos
 
-Ce composant interroge l'API « Base adresse nationale » pour auto-compléter un champ et restituer l’adresse postale choisie.
+Ce composant interroge l'API GeoPlateforme qui s'appuie sur « Base adresse nationale » pour auto-compléter un champ et restituer l’adresse postale choisie.
 
 Il est destiné à s'intégrer au sein de l'écosystème du [système de design de l'État (DSFR)](https://www.systeme-de-design.gouv.fr).
 
@@ -17,6 +17,22 @@ npm i dsfr-postale
 ```
 
 Remarque : veillez à aussi importer la feuille de style, qui apporte quelques modifications nécessaires.
+
+### Utilisation
+
+```vue
+<template>
+	<DsfrPostale @addressSelected="onAddressSelected" label="Adresse postale" />
+</template>
+
+<script setup lang="ts">
+import DsfrPostale from 'dsfr-postale'
+
+function onAddressSelected(address) {
+	console.log('Adresse sélectionnée', address)
+}
+</script>
+```
 
 ### Paramètres
 
@@ -34,3 +50,7 @@ Remarque : veillez à aussi importer la feuille de style, qui apporte quelques m
 ## Accessibilité
 
 Le composant met en œuvre le motif de conception ARIA « combobox » et devrait être accessible.
+
+## Source des données
+
+Le composant recourt aux données de la Base Adresse Nationale (BAN), obtenues via l'API GeoPlateforme.
