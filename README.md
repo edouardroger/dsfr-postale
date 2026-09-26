@@ -21,6 +21,8 @@ Il est destiné à s'intégrer au sein de l'écosystème du [système de design 
 npm i dsfr-postale
 ```
 
+Vue 3.5 ou plus récent est requis (dépendance de pair). Pour une mise à jour depuis la version 1, consultez le [journal des modifications](CHANGELOG.md).
+
 Le DSFR doit être chargé par l'application hôte. Importez aussi la feuille de style du composant :
 
 ```ts
@@ -77,24 +79,30 @@ Le composant met en œuvre le motif ARIA « combobox » (liste de suggestions) :
 ```bash
 npm install
 npm run dev          # démonstration locale, sur les sources
+npm run typecheck    # vérification des types
 npm test             # tests unitaires, rendu serveur et accessibilité (axe-core)
 npm run test:coverage  # idem, avec seuils de couverture
 npm run test:umd     # chargement du build UMD sans outil de build (après npm run build)
 npm run build        # paquet npm (dist/)
 npm run build:demo   # démonstration (dist-demo/), déployée sur GitHub Pages par la CI
+npm run preview      # aperçu de la démonstration construite (http://127.0.0.1:4173/dsfr-postale/)
 ```
 
 ## Publication
 
 La publication sur npm est automatisée (`.github/workflows/publish.yml`) par [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) : aucun jeton npm n'est stocké dans le dépôt et chaque version est accompagnée d'une attestation de provenance.
 
-```bash
-npm version minor            # met à jour package.json, crée le commit et le tag vX.Y.Z
-git push --follow-tags       # le tag déclenche vérifications puis publication
-```
+1. Ajoutez en haut de `CHANGELOG.md` une section `## [x.y.z] — date` décrivant les changements, puis commitez et poussez.
+2. Lancez `npm version patch` pour une correction, `minor` pour un ajout compatible, `major` pour un changement cassant. La commande met à jour `package.json`, crée le commit et le tag annoté `vx.y.z`.
+3. Lancez `git push --follow-tags` : le tag déclenche les vérifications puis la publication.
+4. Créez la release GitHub à partir du tag, avec la nouvelle section du journal.
 
 La publication échoue si le tag ne correspond pas à la version du `package.json`, et ne fait rien si la version existe déjà sur npm.
 
 ## Source des données
 
-Base Adresse Nationale (BAN), via l'[API Géocodage de la Géoplateforme](https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage).
+Base Adresse Nationale (BAN), via l'[API Géocodage de la Géoplateforme](https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage). Le service est public et sans clé, mais soumis à une limite de requêtes : gardez la temporisation (`debounce`) activée.
+
+## Licence
+
+[MIT](LICENSE)
