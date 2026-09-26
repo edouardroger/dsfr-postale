@@ -3,6 +3,21 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; le projet suit le
 [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [2.2.0] — 2026-09-26
+
+### Ajouts
+
+- Prop `type` (`housenumber`, `street`, `locality`, `municipality`), par exemple pour exiger un
+  numéro de voie.
+- Mise en évidence de la saisie dans les suggestions, sans tenir compte de la casse ni des accents.
+- Prop `messages` pour personnaliser les textes ; types `AddressType` et `DsfrPostaleMessages` exportés.
+
+### Outillage
+
+- Contrôle pa11y de la démonstration liste ouverte, en thèmes clair et sombre ; les résultats « à vérifier manuellement » d'axe deviennent des avertissements.
+- Release GitHub créée automatiquement à partir du CHANGELOG lors de la publication.
+- Procédure de publication en un seul commit.
+
 ## [2.1.0] — 2026-09-26
 
 ### Ajouts

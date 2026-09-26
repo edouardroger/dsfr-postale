@@ -1,6 +1,6 @@
 {
   "name": "dsfr-postale",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Composant Vue adoptant le système de design de l'État et proposant une autocomplétion d'adresse postale grâce à l'API « Géocodage » de l'IGN",
   "keywords": [
     "vue",
@@ -58,7 +58,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:umd": "node scripts/check-umd.cjs"
+    "test:umd": "node scripts/check-umd.cjs",
+    "check": "npm run typecheck && npm run test:coverage && npm run build && npm run test:umd && npm run build:demo"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

@@ -1,11 +1,33 @@
 {
   "defaults": {
     "standard": "WCAG2AA",
-    "runners": ["axe", "htmlcs"],
+    "runners": [
+      "axe",
+      "htmlcs"
+    ],
+    "levelCapWhenNeedsReview": "warning",
     "timeout": 30000,
     "chromeLaunchConfig": {
-      "args": ["--no-sandbox"]
+      "args": [
+        "--no-sandbox"
+      ]
     }
   },
-  "urls": ["http://127.0.0.1:4173/dsfr-postale/"]
+  "urls": [
+    "http://127.0.0.1:4173/dsfr-postale/",
+    {
+      "url": "http://127.0.0.1:4173/dsfr-postale/?scheme=light",
+      "actions": [
+        "set field input[role=combobox] to 10 rue de Poitiers",
+        "wait for element [role=option] to be visible"
+      ]
+    },
+    {
+      "url": "http://127.0.0.1:4173/dsfr-postale/?scheme=dark",
+      "actions": [
+        "set field input[role=combobox] to 10 rue de Poitiers",
+        "wait for element [role=option] to be visible"
+      ]
+    }
+  ]
 }

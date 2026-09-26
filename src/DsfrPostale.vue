@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
-import type { GeocodageFeature, SelectedAddress } from './types'
+import { highlight } from './highlight'
+import { DEFAULT_MESSAGES } from './messages'
+import type { AddressType, DsfrPostaleMessages, GeocodageFeature, SelectedAddress } from './types'
 
 const API_ORIGIN = 'https://data.geopf.fr'
 const API_URL = `${API_ORIGIN}/geocodage/search`
 const MIN_LENGTH = 3
 const CACHE_SIZE = 20
+const TYPES = new Set<AddressType>(['housenumber', 'street', 'locality', 'municipality'])
 
 const props = withDefaults(
   defineProps<{
@@ -31,6 +34,10 @@ const props = withDefaults(
     limit?: number
     /** Délai maximal de réponse de l'API, en millisecondes */
     timeout?: number
+    /** Type de résultat attendu, par exemple `housenumber` pour exiger un numéro */
+    type?: AddressType
+    /** Textes du composant (remplace tout ou partie des textes par défaut) */
+    messages?: Partial<DsfrPostaleMessages>
   }>(),
   {
     label: 'Votre adresse postale',
@@ -44,6 +51,8 @@ const props = withDefaults(
     debounceDelay: 300,
     limit: 5,
     timeout: 8000,
+    type: undefined,
+    messages: () => ({}),
   },
 )
 
@@ -70,6 +79,10 @@ const activeIndex = ref(-1)
 const serviceError = ref('')
 const status = ref('')
 
+const text = computed<DsfrPostaleMessages>(() => ({ ...DEFAULT_MESSAGES, ...props.messages }))
+/** Texte pour lequel les suggestions affichées ont été obtenues (mise en évidence). */
+const searched = ref('')
+
 const expanded = computed(() => suggestions.value.length > 0)
 const activeDescendant = computed(() =>
   activeIndex.value >= 0 ? optionId(activeIndex.value) : undefined,
@@ -90,6 +103,7 @@ function buildParams(q: string) {
   const params = new URLSearchParams({ q, limit: String(limit) })
   const postcode = props.postcode.trim()
   if (/^\d{5}$/.test(postcode)) params.set('postcode', postcode)
+  if (props.type && TYPES.has(props.type)) params.set('type', props.type)
   return params.toString()
 }
 
@@ -104,18 +118,15 @@ function close() {
   activeIndex.value = -1
 }
 
-function showResults(features: GeocodageFeature[]) {
+function showResults(features: GeocodageFeature[], q: string) {
   suggestions.value = features
+  searched.value = q
   activeIndex.value = -1
   serviceError.value = ''
-  const n = features.length
-  const s = n > 1 ? 's' : ''
-  status.value = n
-    ? `${n} adresse${s} suggérée${s}. Utilisez les flèches haut et bas pour les parcourir.`
-    : 'Aucune adresse trouvée.'
+  status.value = features.length ? text.value.results(features.length) : text.value.noResults
 }
 
-async function search(params: string) {
+async function search(params: string, q: string) {
   const ctrl = new AbortController()
   controller = ctrl
   const deadline = setTimeout(
@@ -135,13 +146,12 @@ async function search(params: string) {
     cache.delete(params)
     cache.set(params, features)
     if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!)
-    showResults(features)
+    showResults(features, q)
   } catch {
     // Requête remplacée par une saisie plus récente : rien à signaler.
     if (ctrl.signal.aborted && (ctrl.signal.reason as Error | undefined)?.name !== 'TimeoutError') return
     suggestions.value = []
-    serviceError.value =
-      "Le service de suggestion d'adresses ne répond pas. Vous pouvez saisir l'adresse manuellement."
+    serviceError.value = text.value.serviceError
   } finally {
     clearTimeout(deadline)
   }
@@ -154,9 +164,9 @@ function onInput(event: Event) {
 
   const params = buildParams(q)
   const cached = cache.get(params)
-  if (cached) showResults(cached)
-  else if (props.debounce) timer = setTimeout(search, props.debounceDelay, params)
-  else void search(params)
+  if (cached) showResults(cached, q)
+  else if (props.debounce) timer = setTimeout(search, props.debounceDelay, params, q)
+  else void search(params, q)
 }
 
 /** Ouvre la connexion à l'API dès le premier focus, pour accélérer la première suggestion. */
@@ -274,7 +284,7 @@ onBeforeUnmount(cancelPending)
       ref="listbox"
       role="listbox"
       class="dsfr-postale__listbox"
-      aria-label="Adresses postales suggérées"
+      :aria-label="text.listboxLabel"
       :hidden="!expanded"
     >
       <li
@@ -288,7 +298,10 @@ onBeforeUnmount(cancelPending)
         @mousemove="activeIndex = index"
         @click="select(index)"
       >
-        {{ suggestion.properties.label }}
+        <template v-for="(part, p) in highlight(suggestion.properties.label, searched)" :key="p">
+          <mark v-if="part.match" class="dsfr-postale__match">{{ part.text }}</mark>
+          <template v-else>{{ part.text }}</template>
+        </template>
       </li>
     </ul>
     <p class="fr-sr-only" role="status">{{ status }}</p>
@@ -323,6 +336,13 @@ onBeforeUnmount(cancelPending)
 
 .dsfr-postale__option + .dsfr-postale__option {
   border-top: 1px solid var(--border-default-grey, #ddd);
+}
+
+.dsfr-postale__match {
+  padding: 0;
+  font-weight: 700;
+  color: inherit;
+  background: none;
 }
 
 .dsfr-postale__option[aria-selected='true'] {

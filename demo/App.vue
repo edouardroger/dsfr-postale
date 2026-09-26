@@ -16,6 +16,7 @@ const LABELS: Record<keyof SelectedAddress, string> = {
 const examples = [
   { title: 'Utilisation simple', props: {} },
   { title: 'Restreinte au code postal 49400', props: { postcode: '49400', label: 'Adresse à Saumur' } },
+  { title: 'Numéro de voie exigé', props: { type: 'housenumber', label: 'Adresse de livraison' } },
 ] as const
 
 const selected = ref<(SelectedAddress | null)[]>(examples.map(() => null))

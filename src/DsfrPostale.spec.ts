@@ -278,4 +278,27 @@ describe('DsfrPostale', () => {
     const wrapper = mount(DsfrPostale, { attachTo: document.body, props: { errorMessage: 'Adresse obligatoire' } })
     expect(await auditAxe(wrapper.element)).toEqual([])
   })
+
+  it('transmet le type de résultat attendu et ignore une valeur inconnue', async () => {
+    await setup({ type: 'housenumber' })
+    expect(new URL(fetchMock.mock.calls[0]?.[0]).searchParams.get('type')).toBe('housenumber')
+    fetchMock.mockClear()
+    await setup({ type: 'pays' as never })
+    expect(new URL(fetchMock.mock.calls[0]?.[0]).searchParams.has('type')).toBe(false)
+  })
+
+  it('met en évidence la saisie dans les suggestions', async () => {
+    const { wrapper } = await setup()
+    const option = wrapper.get('#adresse-option-0')
+    expect(option.text()).toBe('10 Rue de Poitiers 49400 Saumur')
+    expect(option.findAll('mark').map((m) => m.text())).toEqual(['10 Rue de Poitiers'])
+  })
+
+  it('accepte des textes personnalisés', async () => {
+    const { wrapper } = await setup({
+      messages: { listboxLabel: 'Suggested addresses', results: (n: number) => `${n} results` },
+    })
+    expect(wrapper.get('[role="listbox"]').attributes('aria-label')).toBe('Suggested addresses')
+    expect(wrapper.get('[role="status"]').text()).toBe('2 results')
+  })
 })
