@@ -16,6 +16,12 @@ const FEATURES = [
 
 const fetchMock = vi.fn()
 
+/** fetch qui ne répond jamais, mais rejette comme le navigateur si sa requête est annulée. */
+const abortable = (_url: string, { signal }: RequestInit) =>
+  new Promise((_resolve, reject) => {
+    signal?.addEventListener('abort', () => reject(signal.reason))
+  })
+
 /** Audit axe-core limité aux critères WCAG 2.1 A et AA (base du RGAA 4). */
 async function auditAxe(element: Element) {
   const { violations } = await axe.run(element, {
@@ -36,6 +42,7 @@ afterEach(() => {
   vi.useRealTimers()
   fetchMock.mockReset()
   document.body.innerHTML = ''
+  document.head.innerHTML = ''
 })
 
 async function setup(props = {}) {
@@ -114,12 +121,13 @@ describe('DsfrPostale', () => {
     expect((input.element as HTMLInputElement).value).toBe('')
   })
 
-  it('signale une erreur de l’API de façon accessible', async () => {
+  it('signale une panne de l’API sans marquer le champ invalide', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500 })
     const { wrapper, input } = await setup()
     const messages = wrapper.get(`#${input.attributes('aria-describedby')}`)
-    expect(messages.text()).toContain("Erreur lors de l'obtention")
-    expect(input.attributes('aria-invalid')).toBe('true')
+    expect(messages.get('.fr-message--info').text()).toContain('ne répond pas')
+    expect(input.attributes('aria-invalid')).toBeUndefined()
+    expect(wrapper.classes()).not.toContain('fr-input-group--error')
   })
 
   it('affiche le message d’erreur transmis par le parent', async () => {
@@ -183,9 +191,70 @@ describe('DsfrPostale', () => {
   })
 
   it('ignore l’annulation d’une requête remplacée', async () => {
-    fetchMock.mockRejectedValue(new DOMException('Annulée', 'AbortError'))
-    const { wrapper } = await setup()
-    expect(wrapper.find('.fr-message--error').exists()).toBe(false)
+    fetchMock.mockImplementationOnce(abortable)
+    const wrapper = mount(DsfrPostale, { props: { debounce: false } })
+    const input = wrapper.get('input')
+    await input.setValue('10 rue')
+    await input.setValue('10 rue de Poitiers')
+    await flushPromises()
+    expect(wrapper.find('.fr-message').exists()).toBe(false)
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(2)
+  })
+
+  it('abandonne une requête trop longue et le signale', async () => {
+    vi.useFakeTimers()
+    fetchMock.mockImplementation(abortable)
+    const wrapper = mount(DsfrPostale, { props: { debounce: false, timeout: 1000 } })
+    await wrapper.get('input').setValue('10 rue de Poitiers')
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(wrapper.get('.fr-message--info').text()).toContain('ne répond pas')
+  })
+
+  it('réutilise les réponses récentes sans rappeler l’API', async () => {
+    const { wrapper, input } = await setup()
+    await input.setValue('10 rue de Poitiers 4')
+    await flushPromises()
+    await input.setValue('10 rue de Poitiers')
+    await flushPromises()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(2)
+  })
+
+  it('borne limit et ignore un code postal invalide', async () => {
+    await setup({ limit: 500, postcode: '494' })
+    const url = new URL(fetchMock.mock.calls[0]?.[0])
+    expect(url.searchParams.get('limit')).toBe('50')
+    expect(url.searchParams.has('postcode')).toBe(false)
+  })
+
+  it('fait défiler la liste jusqu’à l’option active', async () => {
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+    const { input } = await setup()
+    await input.trigger('keydown', { key: 'ArrowUp' })
+    await flushPromises()
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest' })
+    expect((scroll.mock.contexts.at(-1) as Element | undefined)?.id).toBe('adresse-option-1')
+    delete (Element.prototype as Partial<Element>).scrollIntoView
+  })
+
+  it('renseigne v-model:address puis le vide si le texte change', async () => {
+    const { wrapper, input } = await setup()
+    await input.trigger('keydown', { key: 'ArrowDown' })
+    await input.trigger('keydown', { key: 'Enter' })
+    const choisie = wrapper.emitted('update:address')?.at(-1)?.[0]
+    expect(choisie).toMatchObject({ housenumber: '10' })
+    await wrapper.setProps({ address: choisie as never })
+    await input.setValue('10 Rue de Poitiers 49400 Saumu')
+    expect(wrapper.emitted('update:address')?.at(-1)).toEqual([null])
+    expect(wrapper.emitted('addressCleared')).toHaveLength(1)
+  })
+
+  it('prépare la connexion à l’API au premier focus', async () => {
+    const wrapper = mount(DsfrPostale, { attachTo: document.body })
+    await wrapper.get('input').trigger('focus')
+    await wrapper.get('input').trigger('focus')
+    expect(document.head.querySelectorAll('link[rel="preconnect"][href="https://data.geopf.fr"]')).toHaveLength(1)
   })
 
   it('ne présente aucune erreur axe, liste fermée', async () => {
@@ -196,6 +265,12 @@ describe('DsfrPostale', () => {
   it('ne présente aucune erreur axe, liste ouverte', async () => {
     const { wrapper, input } = await setup()
     await input.trigger('keydown', { key: 'ArrowDown' })
+    expect(await auditAxe(wrapper.element)).toEqual([])
+  })
+
+  it('ne présente aucune erreur axe, service indisponible', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 503 })
+    const { wrapper } = await setup()
     expect(await auditAxe(wrapper.element)).toEqual([])
   })
 

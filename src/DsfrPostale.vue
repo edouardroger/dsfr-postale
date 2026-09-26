@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, useId } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import type { GeocodageFeature, SelectedAddress } from './types'
 
-const API_URL = 'https://data.geopf.fr/geocodage/search'
+const API_ORIGIN = 'https://data.geopf.fr'
+const API_URL = `${API_ORIGIN}/geocodage/search`
 const MIN_LENGTH = 3
+const CACHE_SIZE = 20
 
 const props = withDefaults(
   defineProps<{
@@ -13,7 +15,7 @@ const props = withDefaults(
     hint?: string
     /** Identifiant du champ (généré par défaut) */
     inputId?: string
-    /** Restreint les suggestions à un code postal */
+    /** Restreint les suggestions à un code postal (5 chiffres, sinon ignoré) */
     postcode?: string
     /** Message d'erreur fourni par le formulaire parent */
     errorMessage?: string
@@ -25,8 +27,10 @@ const props = withDefaults(
     debounce?: boolean
     /** Délai de temporisation, en millisecondes */
     debounceDelay?: number
-    /** Nombre maximal de suggestions (1 à 50) */
+    /** Nombre maximal de suggestions (ramené entre 1 et 50) */
     limit?: number
+    /** Délai maximal de réponse de l'API, en millisecondes */
+    timeout?: number
   }>(),
   {
     label: 'Votre adresse postale',
@@ -39,13 +43,20 @@ const props = withDefaults(
     debounce: true,
     debounceDelay: 300,
     limit: 5,
+    timeout: 8000,
   },
 )
 
-const emit = defineEmits<{ addressSelected: [address: SelectedAddress] }>()
+const emit = defineEmits<{
+  addressSelected: [address: SelectedAddress]
+  /** L'adresse choisie ne correspond plus au texte saisi. */
+  addressCleared: []
+}>()
 
 /** Texte saisi, liable via v-model (facultatif). */
 const query = defineModel<string>({ default: '' })
+/** Adresse choisie, liable via v-model:address ; repasse à null si le texte change. */
+const address = defineModel<SelectedAddress | null>('address', { default: null })
 
 const uid = useId()
 const id = computed(() => props.inputId ?? `dsfr-postale-${uid}`)
@@ -53,23 +64,34 @@ const listboxId = computed(() => `${id.value}-listbox`)
 const messagesId = computed(() => `${id.value}-messages`)
 const optionId = (index: number) => `${id.value}-option-${index}`
 
+const listbox = ref<HTMLUListElement>()
 const suggestions = ref<GeocodageFeature[]>([])
 const activeIndex = ref(-1)
-const fetchError = ref('')
+const serviceError = ref('')
 const status = ref('')
 
 const expanded = computed(() => suggestions.value.length > 0)
-const error = computed(() => props.errorMessage || fetchError.value)
 const activeDescendant = computed(() =>
   activeIndex.value >= 0 ? optionId(activeIndex.value) : undefined,
 )
 
 let timer: ReturnType<typeof setTimeout> | undefined
 let controller: AbortController | undefined
+/** Réponses récentes, pour ne pas réinterroger l'API quand l'usager efface des caractères. */
+const cache = new Map<string, GeocodageFeature[]>()
 
 /** L'API exige au moins 3 caractères commençant par une lettre ou un chiffre. */
 const isSearchable = (q: string) =>
   q.length >= MIN_LENGTH && /^[\p{L}\p{N}]/u.test(q) && /\p{L}/u.test(q)
+
+/** Paramètres de requête, bornés pour éviter les erreurs 400 de l'API. */
+function buildParams(q: string) {
+  const limit = Math.min(50, Math.max(1, Math.trunc(props.limit) || 5))
+  const params = new URLSearchParams({ q, limit: String(limit) })
+  const postcode = props.postcode.trim()
+  if (/^\d{5}$/.test(postcode)) params.set('postcode', postcode)
+  return params.toString()
+}
 
 function cancelPending() {
   clearTimeout(timer)
@@ -82,30 +104,46 @@ function close() {
   activeIndex.value = -1
 }
 
-async function search(q: string) {
-  controller = new AbortController()
-  const params = new URLSearchParams({ q, limit: String(props.limit) })
-  if (props.postcode) params.set('postcode', props.postcode)
+function showResults(features: GeocodageFeature[]) {
+  suggestions.value = features
+  activeIndex.value = -1
+  serviceError.value = ''
+  const n = features.length
+  const s = n > 1 ? 's' : ''
+  status.value = n
+    ? `${n} adresse${s} suggérée${s}. Utilisez les flèches haut et bas pour les parcourir.`
+    : 'Aucune adresse trouvée.'
+}
+
+async function search(params: string) {
+  const ctrl = new AbortController()
+  controller = ctrl
+  const deadline = setTimeout(
+    () => ctrl.abort(new DOMException('Délai de réponse dépassé', 'TimeoutError')),
+    props.timeout,
+  )
 
   try {
     const response = await fetch(`${API_URL}?${params}`, {
       headers: { Accept: 'application/json' },
-      signal: controller.signal,
+      signal: ctrl.signal,
     })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const { features = [] } = (await response.json()) as { features?: GeocodageFeature[] }
+    if (ctrl.signal.aborted) return
 
-    suggestions.value = features
-    activeIndex.value = -1
-    fetchError.value = ''
-    const n = features.length
-    status.value = n
-      ? `${n} adresse${n > 1 ? 's' : ''} suggérée${n > 1 ? 's' : ''}. Utilisez les flèches haut et bas pour les parcourir.`
-      : 'Aucune adresse trouvée.'
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') return
+    cache.delete(params)
+    cache.set(params, features)
+    if (cache.size > CACHE_SIZE) cache.delete(cache.keys().next().value!)
+    showResults(features)
+  } catch {
+    // Requête remplacée par une saisie plus récente : rien à signaler.
+    if (ctrl.signal.aborted && (ctrl.signal.reason as Error | undefined)?.name !== 'TimeoutError') return
     suggestions.value = []
-    fetchError.value = "Erreur lors de l'obtention des adresses. Veuillez réessayer."
+    serviceError.value =
+      "Le service de suggestion d'adresses ne répond pas. Vous pouvez saisir l'adresse manuellement."
+  } finally {
+    clearTimeout(deadline)
   }
 }
 
@@ -113,8 +151,25 @@ function onInput(event: Event) {
   const q = (event.target as HTMLInputElement).value.trim()
   close()
   if (!isSearchable(q)) return
-  if (props.debounce) timer = setTimeout(search, props.debounceDelay, q)
-  else void search(q)
+
+  const params = buildParams(q)
+  const cached = cache.get(params)
+  if (cached) showResults(cached)
+  else if (props.debounce) timer = setTimeout(search, props.debounceDelay, params)
+  else void search(params)
+}
+
+/** Ouvre la connexion à l'API dès le premier focus, pour accélérer la première suggestion. */
+let preconnected = false
+function preconnect() {
+  if (preconnected) return
+  preconnected = true
+  if (document.querySelector(`link[rel="preconnect"][href^="${API_ORIGIN}"]`)) return
+  const link = document.createElement('link')
+  link.rel = 'preconnect'
+  link.href = API_ORIGIN
+  link.crossOrigin = 'anonymous'
+  document.head.append(link)
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -149,10 +204,12 @@ function select(index: number) {
   if (!feature) return
   const { label, housenumber, street, postcode, city, citycode } = feature.properties
   const [lng, lat] = feature.geometry.coordinates
+  const selected: SelectedAddress = { label, housenumber, street, postcode, city, citycode, lat, lng }
   query.value = label
+  address.value = selected
   status.value = ''
   close()
-  emit('addressSelected', { label, housenumber, street, postcode, city, citycode, lat, lng })
+  emit('addressSelected', selected)
 }
 
 function onFocusout(event: FocusEvent) {
@@ -160,13 +217,28 @@ function onFocusout(event: FocusEvent) {
   if (!root.contains(event.relatedTarget as Node | null)) close()
 }
 
+// Garde l'option active visible quand la liste défile (RGAA 10.7 et 12.8).
+watch(activeIndex, async (index) => {
+  if (index < 0) return
+  await nextTick()
+  listbox.value?.children[index]?.scrollIntoView?.({ block: 'nearest' })
+})
+
+// Une adresse choisie devient caduque dès que le texte ne lui correspond plus.
+watch(query, (text) => {
+  if (address.value && text !== address.value.label) {
+    address.value = null
+    emit('addressCleared')
+  }
+})
+
 onBeforeUnmount(cancelPending)
 </script>
 
 <template>
   <div
     class="fr-input-group dsfr-postale"
-    :class="{ 'fr-input-group--error': error }"
+    :class="{ 'fr-input-group--error': errorMessage }"
     @focusout="onFocusout"
   >
     <label :for="id" class="fr-label">
@@ -178,25 +250,28 @@ onBeforeUnmount(cancelPending)
       v-model="query"
       type="text"
       class="fr-input"
-      :class="{ 'fr-input--error': error }"
+      :class="{ 'fr-input--error': errorMessage }"
       role="combobox"
       aria-autocomplete="list"
       :aria-expanded="expanded"
       :aria-controls="listboxId"
       :aria-activedescendant="activeDescendant"
       :aria-describedby="messagesId"
-      :aria-invalid="error ? true : undefined"
+      :aria-invalid="errorMessage ? true : undefined"
       :autocomplete="autocomplete"
       :required="required"
       spellcheck="false"
+      @focus="preconnect"
       @input="onInput"
       @keydown="onKeydown"
     />
     <div :id="messagesId" class="fr-messages-group" aria-live="polite">
-      <p v-if="error" class="fr-message fr-message--error">{{ error }}</p>
+      <p v-if="errorMessage" class="fr-message fr-message--error">{{ errorMessage }}</p>
+      <p v-if="serviceError" class="fr-message fr-message--info">{{ serviceError }}</p>
     </div>
     <ul
       :id="listboxId"
+      ref="listbox"
       role="listbox"
       class="dsfr-postale__listbox"
       aria-label="Adresses postales suggérées"
@@ -205,7 +280,7 @@ onBeforeUnmount(cancelPending)
       <li
         v-for="(suggestion, index) in suggestions"
         :id="optionId(index)"
-        :key="suggestion.properties.label"
+        :key="`${index}-${suggestion.properties.label}`"
         role="option"
         class="dsfr-postale__option"
         :aria-selected="index === activeIndex"
@@ -219,7 +294,6 @@ onBeforeUnmount(cancelPending)
     <p class="fr-sr-only" role="status">{{ status }}</p>
   </div>
 </template>
-
 <style scoped>
 .dsfr-postale {
   position: relative;

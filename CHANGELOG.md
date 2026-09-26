@@ -3,7 +3,25 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; le projet suit le
 [versionnage sémantique](https://semver.org/lang/fr/).
 
-# [2.0.0] — 2026-09-26
+## [2.1.0] — 2026-09-26
+
+### Ajouts
+
+- `v-model:address` : adresse choisie, qui repasse à `null` quand le texte saisi ne lui
+  correspond plus, et événement `addressCleared`.
+- Prop `timeout` (8 s par défaut) : une API qui ne répond pas est signalée au lieu d'être
+  attendue indéfiniment.
+- Cache des 20 dernières réponses et préparation de la connexion à l'API au premier focus.
+
+### Corrections
+
+- L'option active reste visible au clavier quand la liste défile.
+- `limit` est ramené entre 1 et 50 et un `postcode` qui n'a pas 5 chiffres est ignoré, au lieu
+  de provoquer une erreur de l'API.
+- Une indisponibilité de l'API n'est plus présentée comme une erreur de saisie : message
+  d'information, sans `aria-invalid`.
+
+## [2.0.0] — 2026-09-26
 
 ### À vérifier avant de mettre à jour
 

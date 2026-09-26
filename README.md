@@ -33,15 +33,15 @@ import 'dsfr-postale/style.css'
 
 ```vue
 <script setup lang="ts">
+import { ref } from 'vue'
 import DsfrPostale, { type SelectedAddress } from 'dsfr-postale'
 
-function onAddressSelected(address: SelectedAddress) {
-  console.log('Adresse sélectionnée', address)
-}
+// Repasse à null dès que l'usager modifie le texte après son choix.
+const adresse = ref<SelectedAddress | null>(null)
 </script>
 
 <template>
-  <DsfrPostale label="Adresse postale" @address-selected="onAddressSelected" />
+  <DsfrPostale v-model:address="adresse" label="Adresse postale" />
 </template>
 ```
 
@@ -51,20 +51,35 @@ function onAddressSelected(address: SelectedAddress) {
 | --- | --- | --- | --- |
 | `label` | `string` | « Votre adresse postale » | Étiquette du champ |
 | `hint` | `string` | — | Aide à la saisie |
-| `postcode` | `string` | — | Restreint les suggestions à un code postal |
+| `postcode` | `string` | — | Restreint les suggestions à un code postal (5 chiffres, sinon ignoré) |
 | `inputId` | `string` | généré (`useId`) | Identifiant du champ |
 | `errorMessage` | `string` | — | Message d'erreur à afficher |
 | `required` | `boolean` | `false` | Saisie obligatoire |
 | `autocomplete` | `string` | `address-line1` | Finalité du champ (RGAA 11.13) ; `off` si l'adresse n'est pas celle de l'usager |
 | `debounce` | `boolean` | `true` | Temporise les appels à l'API |
 | `debounceDelay` | `number` | `300` | Délai de temporisation (ms) |
-| `limit` | `number` | `5` | Nombre maximal de suggestions (1 à 50) |
+| `limit` | `number` | `5` | Nombre maximal de suggestions (ramené entre 1 et 50) |
+| `timeout` | `number` | `8000` | Délai maximal de réponse de l'API (ms) |
 
-Le texte saisi est accessible via `v-model` (facultatif).
+### Liaisons (`v-model`)
 
-### Événement
+| Liaison | Type | Rôle |
+| --- | --- | --- |
+| `v-model` | `string` | Texte saisi |
+| `v-model:address` | `SelectedAddress \| null` | Adresse choisie ; repasse à `null` si le texte ne lui correspond plus |
 
-`addressSelected` (`@address-selected`) restitue un objet `SelectedAddress` : `label`, `housenumber`, `street`, `postcode`, `city`, `citycode` (code INSEE), `lat`, `lng`.
+### Événements
+
+| Événement | Charge | Déclenchement |
+| --- | --- | --- |
+| `addressSelected` (`@address-selected`) | `SelectedAddress` | Choix d'une suggestion |
+| `addressCleared` (`@address-cleared`) | — | L'adresse choisie ne correspond plus au texte saisi |
+
+`SelectedAddress` contient `label`, `housenumber`, `street`, `postcode`, `city`, `citycode` (code INSEE), `lat` et `lng`.
+
+### Comportement réseau
+
+Les réponses récentes sont gardées en mémoire (20 requêtes) : effacer des caractères ne rappelle pas l'API. La connexion à l'API est préparée au premier focus du champ. Si l'API ne répond pas dans le délai `timeout`, ou renvoie une erreur, un message informe l'usager qu'il peut saisir l'adresse manuellement ; le champ n'est pas marqué invalide pour autant.
 
 ### Politique de sécurité du contenu
 
@@ -99,10 +114,14 @@ La publication sur npm est automatisée (`.github/workflows/publish.yml`) par [T
 
 La publication échoue si le tag ne correspond pas à la version du `package.json`, et ne fait rien si la version existe déjà sur npm.
 
+## Données personnelles
+
+Le texte saisi est transmis à l'API Géocodage de l'IGN pour obtenir les suggestions. Si l'adresse est celle de l'usager, mentionnez ce transfert dans l'information prévue par le RGPD (article 13) de votre service.
+
 ## Source des données
 
 Base Adresse Nationale (BAN), via l'[API Géocodage de la Géoplateforme](https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage). Le service est public et sans clé, mais soumis à une limite de requêtes : gardez la temporisation (`debounce`) activée.
 
 ## Licence
 
-[MIT](LICENSE)
+MIT
