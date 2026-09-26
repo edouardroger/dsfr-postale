@@ -1,0 +1,98 @@
+name: Intégration continue et déploiement
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  qualite:
+    name: Types, tests et build de la librairie
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier les types
+        run: npm run typecheck
+
+      - name: Tests unitaires, rendu serveur, accessibilité (axe) et seuils de couverture
+        run: npm run test:coverage
+
+      - name: Audit des dépendances
+        run: npm audit --audit-level=high
+
+      - name: Construire la librairie
+        run: npm run build
+
+      - name: Vérifier le build UMD sans outil de build
+        run: npm run test:umd
+
+  demo:
+    name: Construire et contrôler la démonstration
+    needs: qualite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Construire la démo
+        run: npm run build:demo
+
+      # Bloquant si la variable de dépôt PA11Y_BLOQUANT vaut « true ».
+      - name: Contrôle d'accessibilité de la démo (pa11y)
+        continue-on-error: ${{ vars.PA11Y_BLOQUANT != 'true' }}
+        run: |
+          npm run preview &
+          npx --yes wait-on http://127.0.0.1:4173/dsfr-postale/ --timeout 60000
+          npx --yes pa11y-ci --config .pa11yci.json
+
+      - if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist-demo
+
+  deploiement:
+    name: Déployer sur GitHub Pages
+    needs: demo
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - id: pages
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,3 +1,5 @@
-import DsfrPostale from "./DsfrPostale.vue";
+import DsfrPostale from './DsfrPostale.vue'
 
-export default DsfrPostale;
+export type { SelectedAddress } from './types'
+export { DsfrPostale }
+export default DsfrPostale

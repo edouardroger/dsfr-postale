@@ -1,43 +1,86 @@
 {
   "name": "dsfr-postale",
-  "version": "1.2.4",
-  "description": "Composant Vue adoptant le système de design de l'Etat et proposant une autocomplétion d'adresse postale grâce à l'API « Géocodage » de l'IGN",
-  "main": "dist/dsfr-postale.umd.js",
-  "module": "dist/dsfr-postale.es.js",
-  "types": "dist/types/index.d.ts",
-  ".": {
-    "import": "dist/dsfr-postale.es.js",
-    "require": "dist/dsfr-postale.umd.js"
-  },
-  "style": "dist/style.css",
-  "scripts": {
-    "build": "vite build",
-    "dev": "vite",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "author": "ER",
+  "version": "2.0.0",
+  "description": "Composant Vue adoptant le système de design de l'État et proposant une autocomplétion d'adresse postale grâce à l'API « Géocodage » de l'IGN",
+  "keywords": [
+    "vue",
+    "dsfr",
+    "adresse",
+    "autocomplete",
+    "combobox",
+    "ban",
+    "geoplateforme",
+    "rgaa"
+  ],
+  "author": "Édouard Roger",
   "license": "MIT",
-  "dependencies": {
-    "vue": "^3.5.13"
+  "homepage": "https://edouardroger.github.io/dsfr-postale/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edouardroger/dsfr-postale.git"
+  },
+  "bugs": "https://github.com/edouardroger/dsfr-postale/issues",
+  "type": "module",
+  "main": "./dist/dsfr-postale.umd.cjs",
+  "module": "./dist/dsfr-postale.es.js",
+  "types": "./dist/types/index.d.ts",
+  "style": "./dist/dsfr-postale.css",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/dsfr-postale.es.js",
+      "require": "./dist/dsfr-postale.umd.cjs"
+    },
+    "./style.css": "./dist/dsfr-postale.css",
+    "./dist/*": "./dist/*"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "build:demo": "vite build --mode demo",
+    "preview": "vite preview --mode demo --port 4173 --strictPort",
+    "typecheck": "vue-tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:umd": "node scripts/check-umd.cjs"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
-    "@types/node": "^22.9.3",
-    "@vitejs/plugin-vue": "^5.2.0",
-    "@vue/test-utils": "^2.4.6",
-    "jsdom": "^26.1.0",
-    "typescript": "^5.7.2",
-    "vite": "^6.3.5",
-    "vite-plugin-dts": "^4.5.3",
-    "vitest": "^4.1.8",
-    "vue-tsc": "^2.2.10"
+    "@types/node": "^24.19.0",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitest/coverage-v8": "^5.0.2",
+    "@vue/test-utils": "^2.5.1",
+    "axe-core": "^4.13.0",
+    "jsdom": "^30.1.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.1",
+    "vite-plugin-dts": "^5.1.1",
+    "vitest": "^5.0.2",
+    "vue": "^3.5.43",
+    "vue-tsc": "^3.3.11"
   },
   "overrides": {
     "minimatch": "^10.2.3"
   },
   "allowScripts": {
-    "esbuild@0.25.12": true,
     "fsevents@2.3.3": true
   }
 }

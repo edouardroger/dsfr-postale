@@ -1,83 +1,206 @@
-import { mount } from "@vue/test-utils";
-import { describe, it, expect } from "vitest";
-import DsfrPostale from "./DsfrPostale.vue";
+import { flushPromises, mount } from '@vue/test-utils'
+import axe from 'axe-core'
+import { h } from 'vue'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import DsfrPostale from './DsfrPostale.vue'
 
-describe("DsfrPostale", () => {
-  it("émet l'événement 'addressSelected' avec l'adresse correcte", async () => {
-    const wrapper = mount(DsfrPostale, {
-      data() {
-        return {
-          // Initialement, pas de suggestions
-          suggestions: [],
-        };
-      },
-      attachTo: document.body, // Pour s'assurer qu'il est monté dans le document
-    });
+const feature = (label: string, housenumber: string, lng: number, lat: number) => ({
+  properties: { label, housenumber, street: 'Rue de Poitiers', postcode: '49400', city: 'Saumur', citycode: '49328' },
+  geometry: { coordinates: [lng, lat] },
+})
 
-    const input = wrapper.find("input");
+const FEATURES = [
+  feature('10 Rue de Poitiers 49400 Saumur', '10', -0.079306, 47.253416),
+  feature('12 Rue de Poitiers 49400 Saumur', '12', -0.0794, 47.2535),
+]
 
-    // Simuler la saisie de texte dans le champ de saisie
-    await input.setValue("10 Rue de Poitiers");
+const fetchMock = vi.fn()
 
-    // Mettre à jour les suggestions après la saisie
-    await wrapper.setData({
-      suggestions: [
-        { housenumber: "10", street: "Rue de Poitiers", citycode: "49400" },
-        { housenumber: "15", street: "Rue de Lyon", citycode: "75002" },
-      ],
-    });
+/** Audit axe-core limité aux critères WCAG 2.1 A et AA (base du RGAA 4). */
+async function auditAxe(element: Element) {
+  const { violations } = await axe.run(element, {
+    runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    // jsdom ne calcule pas le rendu : le contraste se contrôle sur la démo (pa11y).
+    rules: { 'color-contrast': { enabled: false } },
+  })
+  return violations.map((v) => `${v.id} : ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
+}
 
-    // Attendre que Vue ait terminé de mettre à jour le DOM
-    await wrapper.vm.$nextTick();
+beforeEach(() => {
+  fetchMock.mockResolvedValue({ ok: true, json: async () => ({ features: FEATURES }) })
+  vi.stubGlobal('fetch', fetchMock)
+})
 
-    // Attendre un peu plus longtemps pour s'assurer que l'élément est visible
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Petite pause pour laisser le temps au DOM de se mettre à jour
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+  fetchMock.mockReset()
+  document.body.innerHTML = ''
+})
 
-    // Vérifier que le menu des suggestions est visible
-    const suggestionMenu = wrapper.find(".fr-menu__list");
-    const style = getComputedStyle(suggestionMenu.element);
+async function setup(props = {}) {
+  const wrapper = mount(DsfrPostale, {
+    props: { debounce: false, inputId: 'adresse', ...props },
+    attachTo: document.body,
+  })
+  const input = wrapper.get('input')
+  await input.setValue('10 rue de Poitiers')
+  await flushPromises()
+  return { wrapper, input }
+}
 
-    // Vérifier que l'élément n'est pas masqué avec display: none
-    expect(style.display).not.toBe("none");
+describe('DsfrPostale', () => {
+  it('interroge l’API Géocodage avec les bons paramètres', async () => {
+    await setup({ postcode: '49400' })
+    const url = new URL(fetchMock.mock.calls[0]?.[0])
+    expect(url.origin + url.pathname).toBe('https://data.geopf.fr/geocodage/search')
+    expect(url.searchParams.get('q')).toBe('10 rue de Poitiers')
+    expect(url.searchParams.get('limit')).toBe('5')
+    expect(url.searchParams.get('postcode')).toBe('49400')
+  })
 
-    // Vérifier qu'il y a au moins une suggestion dans le menu
-    const listItems = suggestionMenu.findAll("li");
-    expect(listItems.length).toBeGreaterThan(0); // Vérifie qu'il y a au moins une suggestion
+  it('n’interroge pas l’API pour une saisie trop courte ou invalide', async () => {
+    const wrapper = mount(DsfrPostale, { props: { debounce: false } })
+    await wrapper.get('input').setValue('10')
+    await wrapper.get('input').setValue('---')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 
-    // Vérifier que le texte dans le premier élément de la liste correspond à l'adresse simulée
-    const firstSuggestion = listItems.at(0);
+  it('expose le motif ARIA combobox', async () => {
+    const { wrapper, input } = await setup()
+    const listbox = wrapper.get('[role="listbox"]')
+    expect(wrapper.get('label').attributes('for')).toBe('adresse')
+    expect(input.attributes('aria-controls')).toBe(listbox.attributes('id'))
+    expect(input.attributes('aria-expanded')).toBe('true')
+    expect(listbox.findAll('[role="option"]')).toHaveLength(2)
+    expect(wrapper.get('[role="status"]').text()).toContain('2 adresses suggérées')
+  })
 
-    // Vérifier si firstSuggestion existe avant de l'utiliser
-    expect(firstSuggestion).toBeDefined();
+  it('navigue au clavier et sélectionne avec Entrée', async () => {
+    const { wrapper, input } = await setup()
+    await input.trigger('keydown', { key: 'ArrowUp' })
+    expect(input.attributes('aria-activedescendant')).toBe('adresse-option-1')
+    await input.trigger('keydown', { key: 'ArrowDown' })
+    expect(input.attributes('aria-activedescendant')).toBe('adresse-option-0')
+    expect(wrapper.get('#adresse-option-0').attributes('aria-selected')).toBe('true')
 
-    if (firstSuggestion) {
-      expect(firstSuggestion.text()).toContain("10 Rue de Poitiers 49400 Saumur");
+    await input.trigger('keydown', { key: 'Enter' })
+    expect(wrapper.emitted('addressSelected')?.[0]?.[0]).toEqual({
+      label: '10 Rue de Poitiers 49400 Saumur',
+      housenumber: '10',
+      street: 'Rue de Poitiers',
+      postcode: '49400',
+      city: 'Saumur',
+      citycode: '49328',
+      lat: 47.253416,
+      lng: -0.079306,
+    })
+    expect((input.element as HTMLInputElement).value).toBe('10 Rue de Poitiers 49400 Saumur')
+    expect(input.attributes('aria-expanded')).toBe('false')
+  })
 
-      // Simuler la sélection de l'adresse
-      await firstSuggestion.trigger("click");
+  it('sélectionne une adresse au clic et met à jour le v-model', async () => {
+    const { wrapper } = await setup()
+    await wrapper.findAll('[role="option"]')[1]?.trigger('click')
+    expect(wrapper.emitted('addressSelected')?.[0]?.[0]).toMatchObject({ housenumber: '12' })
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual(['12 Rue de Poitiers 49400 Saumur'])
+  })
 
-      // Vérifier que l'événement 'addressSelected' a bien été émis
-      const emittedEvents = wrapper.emitted("addressSelected");
+  it('ferme la liste avec Échap, puis vide le champ', async () => {
+    const { wrapper, input } = await setup()
+    await input.trigger('keydown', { key: 'Escape' })
+    expect(wrapper.get('[role="listbox"]').attributes('hidden')).toBeDefined()
+    await input.trigger('keydown', { key: 'Escape' })
+    expect((input.element as HTMLInputElement).value).toBe('')
+  })
 
-      // Assurer que l'événement a bien été émis
-      expect(emittedEvents).toBeTruthy(); // Vérifie que 'emittedEvents' existe
-      expect(emittedEvents?.length).toBeGreaterThan(0); // Vérifie qu'il y a des événements émis
+  it('signale une erreur de l’API de façon accessible', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500 })
+    const { wrapper, input } = await setup()
+    const messages = wrapper.get(`#${input.attributes('aria-describedby')}`)
+    expect(messages.text()).toContain("Erreur lors de l'obtention")
+    expect(input.attributes('aria-invalid')).toBe('true')
+  })
 
-      // Vérifier le contenu de l'événement
-      if (emittedEvents && emittedEvents.length > 0) {
-        expect(emittedEvents[0][0]).toEqual({
-          city: "Saumur",
-          citycode: "49328",
-          housenumber: "10",
-          label: "10 Rue de Poitiers 49400 Saumur",
-          lat: 47.253416,
-          lng: -0.079306,
-          postcode: "49400",
-          street: "Rue de Poitiers",
-        });
-      } else {
-        throw new Error("L'événement 'addressSelected' n'a pas été émis.");
-      }
-    }
-  });
-});
+  it('affiche le message d’erreur transmis par le parent', async () => {
+    const wrapper = mount(DsfrPostale, { props: { errorMessage: 'Adresse obligatoire' } })
+    expect(wrapper.get('.fr-message--error').text()).toBe('Adresse obligatoire')
+    expect(wrapper.classes()).toContain('fr-input-group--error')
+  })
+
+  it('temporise les appels et annule les requêtes obsolètes', async () => {
+    vi.useFakeTimers()
+    const wrapper = mount(DsfrPostale, { props: { debounceDelay: 300 } })
+    const input = wrapper.get('input')
+    await input.setValue('10 rue')
+    await input.setValue('10 rue de')
+    vi.advanceTimersByTime(299)
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(new URL(fetchMock.mock.calls[0]?.[0]).searchParams.get('q')).toBe('10 rue de')
+  })
+
+  it('génère des identifiants uniques par instance', () => {
+    const wrapper = mount(() => [h(DsfrPostale), h(DsfrPostale)])
+    const ids = wrapper.findAll('input').map((input) => input.attributes('id'))
+    expect(new Set(ids).size).toBe(2)
+  })
+
+  it('annonce l’absence de résultat', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({}) })
+    const { wrapper, input } = await setup()
+    expect(input.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.get('[role="status"]').text()).toBe('Aucune adresse trouvée.')
+  })
+
+  it('suit le survol à la souris et ferme la liste avec Tab', async () => {
+    const { wrapper, input } = await setup()
+    await wrapper.findAll('[role="option"]')[1]?.trigger('mousemove')
+    expect(input.attributes('aria-activedescendant')).toBe('adresse-option-1')
+    await input.trigger('keydown', { key: 'Tab' })
+    expect(input.attributes('aria-expanded')).toBe('false')
+  })
+
+  it('ferme la liste quand le focus quitte le composant', async () => {
+    const { wrapper, input } = await setup()
+    await wrapper.trigger('focusout', { relatedTarget: document.body })
+    expect(input.attributes('aria-expanded')).toBe('false')
+  })
+
+  it('conserve la liste quand le focus reste dans le composant', async () => {
+    const { wrapper, input } = await setup()
+    await wrapper.trigger('focusout', { relatedTarget: input.element })
+    expect(input.attributes('aria-expanded')).toBe('true')
+  })
+
+  it('ignore les touches de navigation sans suggestion', async () => {
+    const wrapper = mount(DsfrPostale, { props: { inputId: 'vide' } })
+    const input = wrapper.get('input')
+    for (const key of ['ArrowDown', 'ArrowUp', 'Enter']) await input.trigger('keydown', { key })
+    expect(input.attributes('aria-activedescendant')).toBeUndefined()
+    expect(wrapper.emitted('addressSelected')).toBeUndefined()
+  })
+
+  it('ignore l’annulation d’une requête remplacée', async () => {
+    fetchMock.mockRejectedValue(new DOMException('Annulée', 'AbortError'))
+    const { wrapper } = await setup()
+    expect(wrapper.find('.fr-message--error').exists()).toBe(false)
+  })
+
+  it('ne présente aucune erreur axe, liste fermée', async () => {
+    const wrapper = mount(DsfrPostale, { attachTo: document.body, props: { required: true, hint: 'Aide' } })
+    expect(await auditAxe(wrapper.element)).toEqual([])
+  })
+
+  it('ne présente aucune erreur axe, liste ouverte', async () => {
+    const { wrapper, input } = await setup()
+    await input.trigger('keydown', { key: 'ArrowDown' })
+    expect(await auditAxe(wrapper.element)).toEqual([])
+  })
+
+  it('ne présente aucune erreur axe, message d’erreur affiché', async () => {
+    const wrapper = mount(DsfrPostale, { attachTo: document.body, props: { errorMessage: 'Adresse obligatoire' } })
+    expect(await auditAxe(wrapper.element)).toEqual([])
+  })
+})
