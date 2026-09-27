@@ -53,7 +53,7 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "build:demo": "vite build --mode demo",
-    "preview": "vite preview --mode demo --port 4173 --strictPort",
+    "preview": "vite preview --mode demo --host 127.0.0.1 --port 4173 --strictPort",
     "typecheck": "vue-tsc",
     "test": "vitest run",
     "test:watch": "vitest",
