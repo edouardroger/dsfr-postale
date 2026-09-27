@@ -5,6 +5,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; le
 
 ## [Non publiée]
 
+## [2.2.1] — 2026-09-27
+
 ### Outillage
 
 - Publication en une seule commande (`npm version`) ; release GitHub créée à partir de ce journal.

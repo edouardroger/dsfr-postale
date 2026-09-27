@@ -1,6 +1,6 @@
 {
   "name": "dsfr-postale",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Composant Vue adoptant le système de design de l'État et proposant une autocomplétion d'adresse postale grâce à l'API « Géocodage » de l'IGN",
   "keywords": [
     "vue",
