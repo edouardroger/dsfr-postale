@@ -3,6 +3,12 @@
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; le projet suit le
 [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publiée]
+
+### Outillage
+
+- Publication en une seule commande (`npm version`) ; release GitHub créée à partir de ce journal.
+
 ## [2.2.0] — 2026-09-26
 
 ### Ajouts

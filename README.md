@@ -113,22 +113,22 @@ npm run test:umd     # chargement du build UMD sans outil de build (après npm r
 npm run build        # paquet npm (dist/)
 npm run build:demo   # démonstration (dist-demo/), déployée sur GitHub Pages par la CI
 npm run preview      # aperçu de la démonstration construite (http://127.0.0.1:4173/dsfr-postale/)
+npm run check        # toutes les vérifications, comme avant une publication
 ```
 
 ## Publication
 
-La publication sur npm est automatisée (`.github/workflows/publish.yml`) par [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) : aucun jeton npm n'est stocké dans le dépôt et chaque version est accompagnée d'une attestation de provenance.
+La publication est automatisée (`.github/workflows/publish.yml`) par [Trusted Publishing](https://docs.npmjs.com/trusted-publishers) : aucun jeton npm n'est stocké dans le dépôt, et chaque version est accompagnée d'une attestation de provenance.
 
-Une version tient en un seul commit :
+Au fil des modifications, décrivez-les dans la section `## [Non publiée]` en tête de `CHANGELOG.md`. Pour publier, une seule commande, dépôt à jour et sans modification en attente :
 
-1. Ajoutez en haut de `CHANGELOG.md` une section `## [x.y.z] — date` décrivant les changements.
-2. Mettez à jour la version sans commit ni tag : `npm version minor --no-git-tag-version` (`patch` pour une correction, `major` pour un changement cassant).
-3. Commitez l'ensemble (code, `CHANGELOG.md`, `package.json`, `package-lock.json`), par exemple « 2.2.0 : mise en évidence, type, textes ».
-4. Créez un tag annoté et poussez : `git tag -a vx.y.z -m "x.y.z"` puis `git push --follow-tags`.
+```bash
+npm version minor   # patch pour une correction, major pour un changement cassant
+```
 
-Le tag déclenche les vérifications, la publication sur npm puis la création de la release GitHub avec la section correspondante du journal.
+Elle vérifie que la section « Non publiée » est remplie et rejoue toutes les vérifications (`npm run check`), puis met à jour le numéro de version, renomme la section avec ce numéro et la date du jour, crée le commit « Version x.y.z » et son tag, et pousse le tout. Le tag déclenche la publication sur npm, puis la création de la release GitHub avec la section correspondante du journal.
 
-La publication échoue si le tag ne correspond pas à la version du `package.json`, et ne fait rien si la version existe déjà sur npm.
+La publication échoue si le tag ne correspond pas à la version du `package.json` ou si le journal n'a pas de section datée pour cette version, et ne fait rien si la version existe déjà sur npm.
 
 ## Données personnelles
 

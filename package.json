@@ -59,7 +59,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:umd": "node scripts/check-umd.cjs",
-    "check": "npm run typecheck && npm run test:coverage && npm run build && npm run test:umd && npm run build:demo"
+    "check": "npm run typecheck && npm run test:coverage && npm run build && npm run test:umd && npm run build:demo",
+    "preversion": "node scripts/changelog.mjs check && npm run check",
+    "version": "node scripts/changelog.mjs release && git add CHANGELOG.md",
+    "postversion": "git push --follow-tags"
   },
   "peerDependencies": {
     "vue": "^3.5.0"

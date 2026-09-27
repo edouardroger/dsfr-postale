@@ -45,6 +45,9 @@ jobs:
             exit 1
           fi
 
+      - name: Vérifier la note de version dans CHANGELOG.md
+        run: node scripts/changelog.mjs notes "$(node -p "require('./package.json').version")" > /dev/null
+
       - name: Vérifier les types
         run: npm run typecheck
 
@@ -83,15 +86,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -eo pipefail
           if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
             echo "La release $GITHUB_REF_NAME existe déjà : rien à faire."
             exit 0
           fi
           version="${GITHUB_REF_NAME#v}"
-          awk -v v="$version" 'index($0, "## [" v "]") == 1 {on=1; next} on && /^## \[/ {exit} on {print}' \
-            CHANGELOG.md | sed '/./,$!d' > notes.md
-          if [ ! -s notes.md ]; then
-            echo "::error::Aucune section « ## [$version] » dans CHANGELOG.md."
-            exit 1
-          fi
-          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$version" --notes-file notes.md
+          node scripts/changelog.mjs notes "$version" > notes.md
+          flags=()
+          if [[ "$version" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$version" --notes-file notes.md "${flags[@]}"
