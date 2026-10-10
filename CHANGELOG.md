@@ -5,6 +5,8 @@ Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) ; le
 
 ## [Non publiée]
 
+## [2.2.2] — 2026-10-10
+
 ### Maintenance 
 
 - Mise à jour de dépendances.
